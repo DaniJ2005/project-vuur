@@ -1,0 +1,6 @@
+@DataTechT4.Api_HostAddress = http://localhost:5140
+
+GET {{DataTechT4.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,12 @@
+services:
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: DataTech-Api
+    ports:
+      - "8008:8008"
+    volumes:
+      - ./api:/app
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development1

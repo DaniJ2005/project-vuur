@@ -1,0 +1,110 @@
+############################
+# Build results
+############################
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+############################
+# .NET Core
+############################
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+############################
+# User-specific files
+############################
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+############################
+# Visual Studio
+############################
+.vs/
+.vscode/
+.vsconfig
+
+############################
+# Rider / JetBrains
+############################
+.idea/
+*.sln.iml
+
+############################
+# OS files
+############################
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+############################
+# Logs
+############################
+*.log
+
+############################
+# IIS / ASP.NET
+############################
+*.publishsettings
+
+############################
+# Secrets & config (be careful!)
+############################
+appsettings.Development.json
+secrets.json
+**/secrets.json
+
+# User Secrets (CLI)
+**/secrets/*
+
+############################
+# Entity Framework
+############################
+*.dbmdl
+*.jfm
+
+############################
+# npm / frontend (if using SPA)
+############################
+node_modules/
+wwwroot/dist/
+wwwroot/build/
+
+############################
+# Coverage / test output
+############################
+coverage/
+*.coverage
+*.coveragexml
+TestResults/
+
+############################
+# Publish output
+############################
+publish/
+out/
+dist/
+
+############################
+# Azure
+############################
+.publish/
+*.azurePubxml
+
+############################
+# Docker
+############################
+docker-compose.override.yml
+
+############################
+# Misc
+############################
+*.swp
+*.tmp
+*.temp
