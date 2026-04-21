@@ -3,11 +3,37 @@
 
 <PageTitle>Counter</PageTitle>
 
-<h1>Counter</h1>
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary to-accent">
+    <div class="bg-white/10 backdrop-blur-xl border border-secondary rounded-2xl shadow-2xl p-10 w-full max-w-md text-center">
 
-<p role="status">Current count: @currentCount</p>
+        <h1 class="text-4xl font-bold text-text mb-6 tracking-tight">
+            Counter
+        </h1>
 
-<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+        <div class="mb-8">
+            <p class="text-sm uppercase tracking-widest text-secondary mb-2">
+                Current Value
+            </p>
+            <div class="text-6xl font-extrabold text-text transition-all duration-300">
+                @currentCount
+            </div>
+        </div>
+
+        <button @onclick="IncrementCount"
+                class="w-full py-3 rounded-xl bg-primary text-text font-semibold text-lg
+            shadow-lg hover:scale-105 hover:bg-accent transition-all duration-200
+            active:scale-95 focus:outline-none focus:ring-2 focus:ring-secondary">
+            Increment
+        </button>
+
+        <button @onclick="ResetCount"
+                class="mt-4 w-full py-2 rounded-xl border border-secondary text-secondary
+            hover:bg-secondary hover:text-text transition-all duration-200">
+            Reset
+        </button>
+
+    </div>
+</div>
 
 @code {
     private int currentCount = 0;
@@ -15,5 +41,10 @@
     private void IncrementCount()
     {
         currentCount++;
+    }
+
+    private void ResetCount()
+    {
+        currentCount = 0;
     }
 }
