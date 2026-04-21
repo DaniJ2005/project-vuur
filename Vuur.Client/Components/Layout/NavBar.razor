@@ -1,0 +1,74 @@
+<!-- NavBar.razor -->
+<nav class="fixed top-0 left-0 right-0 z-50 bg-[#0D0D0D] border-b border-[#F25B29]/20 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+
+            <!-- Logo -->
+            <a href="/" class="flex items-center gap-2 group">
+                <div class="w-8 h-8 bg-[#F25B29] rounded flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M21 6H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-10 7H8v3H6v-3H3v-2h3V8h2v3h3v2zm4.5 2c-.83 0-1.5-.67-1.5-1.5S14.67 12 15.5 12s1.5.67 1.5 1.5S16.33 15 15.5 15zm3-3c-.83 0-1.5-.67-1.5-1.5S17.67 10 18.5 10s1.5.67 1.5 1.5S19.33 12 18.5 12z"/>
+                    </svg>
+                </div>
+                <span class="text-white font-bold text-xl tracking-tight group-hover:text-[#F25B29] transition-colors duration-200">
+                    VU<span class="text-[#F25B29]">UR</span>
+                </span>
+            </a>
+
+            <!-- Desktop Nav Links -->
+            <div class="hidden md:flex items-center gap-1">
+                <a href="/" class="text-gray-300 hover:text-[#F25B29] hover:bg-[#F25B29]/10 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200">
+                    Home
+                </a>
+                <a href="/catalog" class="text-gray-300 hover:text-[#F25B29] hover:bg-[#F25B29]/10 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200">
+                    Catalogus
+                </a>
+                <a href="/deals" class="text-gray-300 hover:text-[#F25B29] hover:bg-[#F25B29]/10 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200">
+                    Deals
+                </a>
+                <a href="/library" class="text-gray-300 hover:text-[#F25B29] hover:bg-[#F25B29]/10 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200">
+                    Mijn Library
+                </a>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="hidden md:flex items-center flex-1 max-w-xs mx-6">
+                <div class="relative w-full">
+                    <input type="text"
+                           placeholder="Zoek een game..."
+                           class="w-full bg-[#1A1A1A] border border-[#333] text-gray-300 placeholder-gray-500 rounded-md px-4 py-2 text-sm focus:outline-none focus:border-[#F25B29] focus:ring-1 focus:ring-[#F25B29] transition-all duration-200" />
+                    <svg class="absolute right-3 top-2.5 w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Right Side Actions -->
+            <div class="flex items-center gap-3">
+                <!-- Cart -->
+                <a href="/cart" class="relative p-2 text-gray-300 hover:text-[#F25B29] transition-colors duration-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6m-3-6v6"/>
+                    </svg>
+                    <span class="absolute -top-1 -right-1 bg-[#F25B29] text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">3</span>
+                </a>
+
+                <!-- Login / Account -->
+                <a href="/login" class="hidden md:inline-flex items-center gap-2 border border-[#F25B29] text-[#F25B29] hover:bg-[#F25B29] hover:text-white px-4 py-2 rounded-md text-sm font-medium transition-all duration-200">
+                    Inloggen
+                </a>
+                <a href="/register" class="hidden md:inline-flex items-center gap-2 bg-[#F25B29] hover:bg-[#d94e22] text-white px-4 py-2 rounded-md text-sm font-medium transition-all duration-200">
+                    Registreren
+                </a>
+
+                <!-- Mobile Hamburger -->
+                <button class="md:hidden p-2 text-gray-300 hover:text-[#F25B29] transition-colors duration-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
+            </div>
+
+        </div>
+    </div>
+</nav>
