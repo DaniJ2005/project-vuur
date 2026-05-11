@@ -1,0 +1,238 @@
+@* Pages/Catalog.razor *@
+@page "/catalog"
+@using Vuur.Models
+
+<PageTitle>Catalogus – VUUR</PageTitle>
+
+<div class="pt-16 min-h-screen bg-[#0D0D0D]">
+
+    <!-- Page Header -->
+    <div class="border-b border-[#1A1A1A] bg-[#0D0D0D]">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <h1 class="text-3xl font-black text-white mb-1">Game Catalogus</h1>
+            <p class="text-gray-500 text-sm">@FilteredGames.Count game(s) gevonden</p>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="flex gap-8">
+
+            <!-- ======= SIDEBAR FILTERS ======= -->
+            <aside class="hidden lg:block w-64 flex-shrink-0 space-y-6">
+
+                <!-- Zoekbalk -->
+                <div>
+                    <label class="text-white text-xs font-bold uppercase tracking-wider block mb-2">Zoeken</label>
+                    <div class="relative">
+                        <input type="text" placeholder="Titel zoeken..." @bind="Search" @bind:event="oninput"
+                               class="w-full bg-[#111] border border-[#2A2A2A] focus:border-[#F25B29] text-gray-300 placeholder-gray-600 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#F25B29] transition-all" />
+                        <svg class="absolute right-3 top-3 w-4 h-4 text-gray-600" fill="none" stroke="currentColor"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Type: Key / Disc -->
+                <div>
+                    <label class="text-white text-xs font-bold uppercase tracking-wider block mb-2">Type</label>
+                    <div class="space-y-1.5">
+                        @foreach (var t in new[] { ("all", "Alle"), ("key", "🔑 Digitale Key"), ("disc", "💿 Fysieke Disc") })
+                        {
+                            <button @onclick="() => SelectedType = t.Item1"
+                                    class="@($"w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-150 {(SelectedType == t.Item1 ? "bg-[#F25B29]/10 border border-[#F25B29]/40 text-[#F25B29] font-bold" : "text-gray-400 hover:text-gray-200 hover:bg-[#1A1A1A] border border-transparent")}")">
+                                @t.Item2
+                            </button>
+                        }
+                    </div>
+                </div>
+
+                <!-- Platform -->
+                <div>
+                    <label class="text-white text-xs font-bold uppercase tracking-wider block mb-2">Platform</label>
+                    <div class="space-y-1.5">
+                        @foreach (var p in AllPlatforms)
+                        {
+                            <button @onclick="() => SelectedPlatform = p"
+                                    class="@($"w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-150 {(SelectedPlatform == p ? "bg-[#F25B29]/10 border border-[#F25B29]/40 text-[#F25B29] font-bold" : "text-gray-400 hover:text-gray-200 hover:bg-[#1A1A1A] border border-transparent")}")">
+                                @p
+                            </button>
+                        }
+                    </div>
+                </div>
+
+                <!-- Genre -->
+                <div>
+                    <label class="text-white text-xs font-bold uppercase tracking-wider block mb-2">Genre</label>
+                    <div class="space-y-1.5">
+                        @foreach (var g in AllGenres)
+                        {
+                            <button @onclick="() => SelectedGenre = g"
+                                    class="@($"w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-150 {(SelectedGenre == g ? "bg-[#F25B29]/10 border border-[#F25B29]/40 text-[#F25B29] font-bold" : "text-gray-400 hover:text-gray-200 hover:bg-[#1A1A1A] border border-transparent")}")">
+                                @g
+                            </button>
+                        }
+                    </div>
+                </div>
+
+                <!-- Prijs Range -->
+                <div>
+                    <label class="text-white text-xs font-bold uppercase tracking-wider block mb-2">Max. Prijs</label>
+                    <div class="space-y-1.5">
+                        @foreach (var (label, max) in PriceRanges)
+                        {
+                            <button @onclick="() => MaxPrice = max"
+                                    class="@($"w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-150 {(MaxPrice == max ? "bg-[#F25B29]/10 border border-[#F25B29]/40 text-[#F25B29] font-bold" : "text-gray-400 hover:text-gray-200 hover:bg-[#1A1A1A] border border-transparent")}")">
+                                @label
+                            </button>
+                        }
+                    </div>
+                </div>
+
+                <!-- Reset -->
+                <button @onclick="ResetFilters"
+                        class="w-full border border-[#2A2A2A] hover:border-[#F25B29]/40 text-gray-500 hover:text-[#F25B29] py-2 rounded-lg text-sm transition-all duration-150">
+                    Filters wissen
+                </button>
+
+            </aside>
+
+            <!-- ======= GAME GRID ======= -->
+            <div class="flex-1 min-w-0">
+
+                <!-- Top bar: Sort + active filters -->
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+
+                    <!-- Active filter pills -->
+                    <div class="flex flex-wrap gap-2">
+                        @if (SelectedType != "all")
+                        {
+                            <span
+                                class="flex items-center gap-1.5 bg-[#F25B29]/10 border border-[#F25B29]/30 text-[#F25B29] text-xs px-3 py-1 rounded-full font-medium">
+                                @(SelectedType == "key" ? "🔑 Key" : "💿 Disc")
+                                <button @onclick='() => SelectedType = "all"' class="hover:text-white ml-0.5">✕</button>
+                            </span>
+                        }
+                        @if (SelectedPlatform != "Alle")
+                        {
+                            <span
+                                class="flex items-center gap-1.5 bg-[#F25B29]/10 border border-[#F25B29]/30 text-[#F25B29] text-xs px-3 py-1 rounded-full font-medium">
+                                @SelectedPlatform
+                                <button @onclick='() => SelectedPlatform = "Alle"'
+                                        class="hover:text-white ml-0.5">✕</button>
+                            </span>
+                        }
+                        @if (SelectedGenre != "Alle")
+                        {
+                            <span
+                                class="flex items-center gap-1.5 bg-[#F25B29]/10 border border-[#F25B29]/30 text-[#F25B29] text-xs px-3 py-1 rounded-full font-medium">
+                                @SelectedGenre
+                                <button @onclick='() => SelectedGenre = "Alle"' class="hover:text-white ml-0.5">✕</button>
+                            </span>
+                        }
+                    </div>
+
+                    <!-- Sort -->
+                    <select @bind="SortBy"
+                            class="bg-[#111] border border-[#2A2A2A] text-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#F25B29] transition-all">
+                        <option value="title">A–Z</option>
+                        <option value="price_asc">Prijs: laag–hoog</option>
+                        <option value="price_desc">Prijs: hoog–laag</option>
+                        <option value="rating">Beoordeling</option>
+                        <option value="discount">Meeste korting</option>
+                    </select>
+                </div>
+
+                <!-- Grid -->
+                @if (!FilteredGames.Any())
+                {
+                    <div class="text-center py-24">
+                        <div class="text-5xl mb-4">🔍</div>
+                        <p class="text-gray-400 font-bold">Geen games gevonden</p>
+                        <p class="text-gray-600 text-sm mt-1">Pas je filters aan</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+                        @foreach (var game in FilteredGames)
+                        {
+                            <GameCard Game="game" OnAddToCart="AddToCart" />
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery] private string? q { get; set; }
+    [CascadingParameter] private MainLayout? Layout { get; set; }
+
+    private string Search = "";
+    private string SelectedType = "all";
+    private string SelectedPlatform = "Alle";
+    private string SelectedGenre = "Alle";
+    private decimal MaxPrice = 999m;
+    private string SortBy = "title";
+
+    private List<string> AllPlatforms => new[] { "Alle" }.Concat(GameStore.AllGames.Select(g =>
+g.Platform).Distinct().OrderBy(p => p)).ToList();
+    private List<string> AllGenres => new[] { "Alle" }.Concat(GameStore.AllGames.Select(g => g.Genre).Distinct().OrderBy(g
+=> g)).ToList();
+    private List<(string label, decimal max)> PriceRanges = new()
+    {
+        ("Alle prijzen", 999m),
+        ("Onder €10", 10m),
+        ("Onder €25", 25m),
+        ("Onder €40", 40m),
+        ("Onder €60", 60m),
+    };
+
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrWhiteSpace(q)) Search = q;
+    }
+
+    private List<GameItem> FilteredGames
+    {
+        get
+        {
+            var games = GameStore.AllGames.AsEnumerable();
+            if (!string.IsNullOrWhiteSpace(Search))
+                games = games.Where(g => g.Title.Contains(Search, StringComparison.OrdinalIgnoreCase));
+            if (SelectedType != "all")
+                games = games.Where(g => g.Type == SelectedType);
+            if (SelectedPlatform != "Alle")
+                games = games.Where(g => g.Platform == SelectedPlatform);
+            if (SelectedGenre != "Alle")
+                games = games.Where(g => g.Genre == SelectedGenre);
+            games = games.Where(g => g.Price <= MaxPrice);
+
+            games = SortBy switch
+            {
+                "price_asc" => games.OrderBy(g => g.Price),
+                "price_desc" => games.OrderByDescending(g => g.Price),
+                "rating" => games.OrderByDescending(g => g.Rating),
+                "discount" => games.OrderByDescending(g => g.DiscountPercent),
+                _ => games.OrderBy(g => g.Title),
+            };
+
+            return games.ToList();
+        }
+    }
+
+    void AddToCart(GameItem game)
+    {
+        CartService.AddToCart(game);
+        Layout?.TriggerOpenCart();
+    }
+
+    void ResetFilters()
+    {
+        Search = ""; SelectedType = "all"; SelectedPlatform = "Alle";
+        SelectedGenre = "Alle"; MaxPrice = 999m; SortBy = "title";
+    }
+}

@@ -1,0 +1,186 @@
+@* Pages/Register.razor *@
+@page "/register"
+@inject NavigationManager Nav
+
+<PageTitle>Registreren – VUUR</PageTitle>
+
+<div class="pt-16 min-h-screen bg-[#0D0D0D] flex items-center justify-center px-4 py-10">
+
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-[#F25B29] opacity-5 rounded-full blur-[100px] pointer-events-none"></div>
+
+    <div class="relative w-full max-w-md">
+
+        <!-- Logo -->
+        <div class="text-center mb-8">
+            <a href="/" class="inline-flex items-center gap-2">
+                <div class="w-10 h-10 bg-[#F25B29] rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M21 6H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-10 7H8v3H6v-3H3v-2h3V8h2v3h3v2zm4.5 2c-.83 0-1.5-.67-1.5-1.5S14.67 12 15.5 12s1.5.67 1.5 1.5S16.33 15 15.5 15zm3-3c-.83 0-1.5-.67-1.5-1.5S17.67 10 18.5 10s1.5.67 1.5 1.5S19.33 12 18.5 12z"/>
+                    </svg>
+                </div>
+                <span class="text-white font-bold text-2xl tracking-tight">VU<span class="text-[#F25B29]">UR</span></span>
+            </a>
+            <p class="text-gray-500 text-sm mt-3">Maak je gratis account aan</p>
+        </div>
+
+        <!-- Card -->
+        <div class="bg-[#111] border border-[#1E1E1E] rounded-2xl p-8">
+            <h1 class="text-white font-black text-2xl mb-6">Account aanmaken</h1>
+
+            @if (ErrorMessage is not null)
+            {
+                <div class="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3 mb-5 flex items-center gap-2">
+                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    @ErrorMessage
+                </div>
+            }
+
+            <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="@LabelClass">Voornaam</label>
+                        <input @bind="FirstName" placeholder="Jan" class="@InputClass" />
+                    </div>
+                    <div>
+                        <label class="@LabelClass">Achternaam</label>
+                        <input @bind="LastName" placeholder="de Vries" class="@InputClass" />
+                    </div>
+                </div>
+
+                <div>
+                    <label class="@LabelClass">Gebruikersnaam</label>
+                    <input @bind="Username" placeholder="GamerTag123" class="@InputClass" />
+                    <p class="text-gray-600 text-xs mt-1">Zichtbaar voor andere gebruikers</p>
+                </div>
+
+                <div>
+                    <label class="@LabelClass">E-mailadres</label>
+                    <input @bind="Email" type="email" placeholder="jij@example.com" class="@InputClass" />
+                </div>
+
+                <div>
+                    <label class="@LabelClass">Wachtwoord</label>
+                    <div class="relative">
+                        <input @bind="Password" @oninput="CheckStrength" type="@(ShowPassword ? "text" : "password")" placeholder="Minimaal 8 tekens" class="@InputClass pr-12" />
+                        <button @onclick="() => ShowPassword = !ShowPassword" class="absolute right-3 top-3 text-gray-500 hover:text-gray-300 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <!-- Password strength bar -->
+                    @if (!string.IsNullOrEmpty(Password))
+                    {
+                        <div class="mt-2 space-y-1">
+                            <div class="flex gap-1">
+                                @for (int i = 0; i < 4; i++)
+                                {
+                                    var idx = i;
+                                    <div class="@($"flex-1 h-1 rounded-full transition-all duration-300 {(PasswordStrength > idx ? StrengthColors[Math.Min(PasswordStrength - 1, 3)] : "bg-[#2A2A2A]")}")"></div>
+                                }
+                            </div>
+                            <p class="text-xs @StrengthTextColor">@StrengthLabel</p>
+                        </div>
+                    }
+                </div>
+
+                <div>
+                    <label class="@LabelClass">Wachtwoord bevestigen</label>
+                    <input @bind="ConfirmPassword" type="password" placeholder="Herhaal wachtwoord" class="@InputClass" />
+                    @if (!string.IsNullOrEmpty(ConfirmPassword) && ConfirmPassword != Password)
+                    {
+                        <p class="text-red-400 text-xs mt-1">Wachtwoorden komen niet overeen</p>
+                    }
+                </div>
+
+                <div class="flex items-start gap-2 pt-1">
+                    <input type="checkbox" id="terms" @bind="AcceptTerms" class="accent-[#F25B29] w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <label for="terms" class="text-gray-500 text-sm cursor-pointer leading-relaxed">
+                        Ik ga akkoord met de <a href="/terms" class="text-[#F25B29] hover:underline">Algemene Voorwaarden</a> en het <a href="/privacy" class="text-[#F25B29] hover:underline">Privacybeleid</a>
+                    </label>
+                </div>
+
+                <button @onclick="HandleRegister"
+                        class="w-full bg-[#F25B29] hover:bg-[#d94e22] text-white font-black py-3.5 rounded-xl text-base transition-all duration-200 hover:shadow-[0_0_20px_rgba(242,91,41,0.3)] active:scale-95 mt-2">
+                    Account aanmaken
+                </button>
+            </div>
+
+            <!-- Voordelen -->
+            <div class="mt-6 pt-6 border-t border-[#1A1A1A]">
+                <p class="text-gray-600 text-xs text-center mb-3">Als lid krijg je toegang tot:</p>
+                <div class="grid grid-cols-3 gap-2 text-center">
+                    @foreach (var (icon, label) in new[] { ("🔑", "Game Keys"), ("📚", "Library"), ("⭐", "Wishlist") })
+                    {
+                        <div class="bg-[#0D0D0D] border border-[#1A1A1A] rounded-xl p-2">
+                            <div class="text-lg mb-1">@icon</div>
+                            <p class="text-gray-600 text-xs">@label</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <p class="text-center text-gray-600 text-sm mt-6">
+            Al een account?
+            <a href="/login" class="text-[#F25B29] hover:underline font-medium">Inloggen</a>
+        </p>
+    </div>
+</div>
+
+@code {
+    private string FirstName = "";
+    private string LastName = "";
+    private string Username = "";
+    private string Email = "";
+    private string Password = "";
+    private string ConfirmPassword = "";
+    private bool AcceptTerms = false;
+    private bool ShowPassword = false;
+    private int PasswordStrength = 0;
+    private string? ErrorMessage = null;
+
+    private string InputClass = "w-full bg-[#0D0D0D] border border-[#2A2A2A] focus:border-[#F25B29] text-gray-300 placeholder-gray-700 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#F25B29] transition-all";
+    private string LabelClass = "text-gray-400 text-xs font-bold uppercase tracking-wider block mb-1.5";
+
+    private string[] StrengthColors = { "bg-red-500", "bg-orange-500", "bg-yellow-500", "bg-emerald-500" };
+    private string[] StrengthLabels = { "Zwak", "Matig", "Goed", "Sterk" };
+    private string StrengthLabel => PasswordStrength > 0 ? StrengthLabels[PasswordStrength - 1] : "";
+    private string StrengthTextColor => PasswordStrength switch
+    {
+        1 => "text-red-400", 2 => "text-orange-400", 3 => "text-yellow-400", _ => "text-emerald-400"
+    };
+
+    void CheckStrength(ChangeEventArgs e)
+    {
+        var pw = e.Value?.ToString() ?? "";
+        Password = pw;
+        int score = 0;
+        if (pw.Length >= 8) score++;
+        if (pw.Any(char.IsUpper)) score++;
+        if (pw.Any(char.IsDigit)) score++;
+        if (pw.Any(c => !char.IsLetterOrDigit(c))) score++;
+        PasswordStrength = score;
+    }
+
+    void HandleRegister()
+    {
+        if (string.IsNullOrWhiteSpace(FirstName) || string.IsNullOrWhiteSpace(Email) || string.IsNullOrWhiteSpace(Username))
+        {
+            ErrorMessage = "Vul alle verplichte velden in."; return;
+        }
+        if (Password != ConfirmPassword)
+        {
+            ErrorMessage = "Wachtwoorden komen niet overeen."; return;
+        }
+        if (!AcceptTerms)
+        {
+            ErrorMessage = "Je moet akkoord gaan met de voorwaarden."; return;
+        }
+        // Mock: direct ingelogd
+        Nav.NavigateTo("/");
+    }
+}

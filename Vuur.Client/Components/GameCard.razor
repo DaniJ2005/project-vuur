@@ -1,0 +1,93 @@
+@* Components/GameCard.razor *@
+@* Herbruikbare game card — compact voor grid, uitgebreid voor lists *@
+@using Vuur.Models
+
+<div class="group bg-[#111] border border-[#1E1E1E] hover:border-[#F25B29]/50 rounded-xl overflow-hidden transition-all duration-300 hover:shadow-[0_8px_30px_rgba(242,91,41,0.15)] hover:-translate-y-1 flex flex-col">
+    <!-- Thumbnail -->
+    <a href="/game/@Game.Id" class="block relative aspect-[3/4] bg-[#1A1A1A] overflow-hidden flex-shrink-0">
+        <img src="@($"https://placehold.co/300x400/111111/F25B29?text={Uri.EscapeDataString(Game.Title)}")"
+             alt="@Game.Title"
+             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+
+        @* Badges bovenlinks *@
+        <div class="absolute top-2 left-2 flex flex-col gap-1">
+            @if (Game.DiscountPercent > 0)
+            {
+                <span class="bg-[#F25B29] text-white text-xs font-black px-2 py-0.5 rounded">-@Game.DiscountPercent%</span>
+            }
+            @if (Game.IsNew)
+            {
+                <span class="bg-emerald-500 text-white text-xs font-black px-2 py-0.5 rounded">NIEUW</span>
+            }
+        </div>
+
+        @* Platform badge rechtsboven *@
+        <div class="absolute top-2 right-2 bg-[#0D0D0D]/80 backdrop-blur-sm border border-[#333] text-gray-300 text-xs px-2 py-0.5 rounded">
+            @Game.Platform
+        </div>
+
+        @* Type badge rechtsonder: KEY vs DISC *@
+        <div class="absolute bottom-2 right-2">
+            @if (Game.Type == "key")
+            {
+                <span class="flex items-center gap-1 bg-[#1A1A2E]/90 border border-blue-500/40 text-blue-400 text-xs font-bold px-2 py-0.5 rounded">
+                    🔑 KEY
+                </span>
+            }
+            else
+            {
+                <span class="flex items-center gap-1 bg-[#1A1A1A]/90 border border-amber-500/40 text-amber-400 text-xs font-bold px-2 py-0.5 rounded">
+                    💿 DISC
+                </span>
+            }
+        </div>
+    </a>
+
+    <!-- Info -->
+    <div class="p-4 flex flex-col flex-1">
+        <a href="/game/@Game.Id" class="block">
+            <h3 class="text-white font-bold text-sm leading-tight mb-1 line-clamp-2 group-hover:text-[#F25B29] transition-colors">@Game.Title</h3>
+        </a>
+
+        <p class="text-gray-600 text-xs mb-2">@Game.Genre</p>
+
+        @if (Game.Reviews > 0)
+        {
+            <div class="flex items-center gap-1 mb-3">
+                <div class="flex text-[#F25B29] text-xs">
+                    @for (int i = 1; i <= 5; i++)
+                    {
+                        <span>@(i <= (int)Game.Rating ? "★" : "☆")</span>
+                    }
+                </div>
+                <span class="text-gray-600 text-xs">(@Game.Reviews.ToString("N0"))</span>
+            </div>
+        }
+        else
+        {
+            <div class="mb-3">
+                <span class="text-gray-600 text-xs italic">Nog geen reviews</span>
+            </div>
+        }
+
+        <!-- Prijs + Knop -->
+        <div class="flex items-center justify-between mt-auto">
+            <div>
+                @if (Game.OriginalPrice > Game.Price)
+                {
+                    <span class="text-gray-600 text-xs line-through block">€@Game.OriginalPrice.ToString("F2")</span>
+                }
+                <span class="text-[#F25B29] font-black text-xl">€@Game.Price.ToString("F2")</span>
+            </div>
+            <button @onclick="() => OnAddToCart.InvokeAsync(Game)"
+                    class="bg-[#F25B29] hover:bg-[#d94e22] text-white text-xs font-bold px-3 py-2 rounded-md transition-all duration-200 hover:scale-105 active:scale-95">
+                + Kopen
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public GameItem Game { get; set; } = null!;
+    [Parameter] public EventCallback<GameItem> OnAddToCart { get; set; }
+}

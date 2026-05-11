@@ -1,13 +1,34 @@
+@* MainLayout.razor *@
 @inherits LayoutComponentBase
+@using Vuur.Models
 
-<div class="min-h-screen flex flex-col bg-[#0D0D0D]">
+<CascadingValue Value="this">
+    <div class="min-h-screen flex flex-col bg-[#0D0D0D]">
 
-    <NavBar />
+        <NavBar OnCartOpen="OpenCart" />
 
-    <main class="flex-1">
-        @Body
-    </main>
+        <CartSidebar @bind-IsOpen="CartOpen" />
 
-    <Footer />
+        <main class="flex-1">
+            @Body
+        </main>
 
-</div>
+        <Footer />
+
+    </div>
+</CascadingValue>
+
+@code {
+    private bool CartOpen = false;
+    
+    void OpenCart()
+    {
+        CartOpen = true;
+        StateHasChanged(); // 👈 force re-render
+    }
+    
+    public void TriggerOpenCart()
+    {
+        OpenCart();
+    }
+}
