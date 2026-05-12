@@ -27,6 +27,10 @@
 
     <!-- Swagger -->
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+
+	<!-- JWT Authentication -->
+	<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
+	<PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.9.0" />
   </ItemGroup>
 
   <!-- Embed all .sql migration scripts into the assembly -->
@@ -35,11 +39,9 @@
   </ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="Features\Auth\" />
 	  <Folder Include="Features\Cart\" />
 	  <Folder Include="Features\Admin\" />
 	  <Folder Include="Features\Orders\" />
-	  <Folder Include="Features\Users\" />
 	</ItemGroup>
 
 </Project>
