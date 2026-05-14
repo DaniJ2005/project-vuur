@@ -11,12 +11,12 @@ public class UserRepository(PostgresContext db)
     public async Task<User> CreateAsync(User user)
     {
         const string sql = """
-            INSERT INTO users (id, first_name, last_name, email, password_hash, role, created_at, updated_at)
-            VALUES (@Id, @FirstName, @LastName, @Email, @PasswordHash, @Role, @CreatedAt, @UpdatedAt)
-            RETURNING *;
-            """;
+        INSERT INTO users (id, first_name, last_name, email, password_hash, role_id, created_at, updated_at)
+        VALUES (@Id, @FirstName, @LastName, @Email, @PasswordHash, @RoleId, @CreatedAt, @UpdatedAt)
+        RETURNING *;
+        """;
 
-        user.Id        = Guid.NewGuid();
+        user.Id = Guid.NewGuid();
         user.CreatedAt = DateTime.UtcNow;
         user.UpdatedAt = DateTime.UtcNow;
 
