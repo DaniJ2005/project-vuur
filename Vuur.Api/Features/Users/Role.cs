@@ -1,4 +1,4 @@
-﻿namespace Vuur.Api.Features.Roles
+﻿namespace Vuur.Api.Features.Users
 {
     public class Role
     {

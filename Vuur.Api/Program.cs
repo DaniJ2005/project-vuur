@@ -1,8 +1,11 @@
-using Vuur.Api.Data;
-using Vuur.Api.Features.Users;
-using Vuur.Api.Features.Auth;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using Vuur.Api.Data;
+using Vuur.Api.Features.Auth;
+using Vuur.Api.Features.Orders;
+using Vuur.Api.Features.Users;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +20,12 @@ if (builder.Environment.IsDevelopment())
         builder.Configuration.AddEnvironmentVariables();
     }
 }
+
+JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+
+// Make Dapper map snake_case columns to PascalCase properties automatically
+Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
+
 
 // PostgreSQL
 builder.Services.AddSingleton<PostgresContext>();
@@ -34,24 +43,48 @@ builder.Services.AddScoped<UserReadRepository>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<AuthService>();
 
+// Addresses
+builder.Services.AddScoped<AddressRepository>();
+builder.Services.AddScoped<AddressReadRepository>();
+builder.Services.AddScoped<AddressService>();
+
+// Wishlist
+builder.Services.AddScoped<WishlistRepository>();
+builder.Services.AddScoped<WishlistReadRepository>();
+builder.Services.AddScoped<WishlistService>();
+
+// Orders
+builder.Services.AddScoped<OrderRepository>();
+builder.Services.AddScoped<OrderReadRepository>();
+builder.Services.AddScoped<OrderService>();
+
+// Payments
+builder.Services.AddScoped<PaymentRepository>();
+builder.Services.AddScoped<PaymentReadRepository>();
+builder.Services.AddScoped<PaymentService>();
+
 var jwtSecret = builder.Configuration["Jwt:Secret"] ?? throw new InvalidOperationException("Jwt:Secret not configured.");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? throw new InvalidOperationException("Jwt:Issuer not configured.");
-var jwtAudience = builder.Configuration["Jwt:Audience"] ?? throw new InvalidOperationException("Jwt:Audience not configured.");
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        options.Audience = null;
+        options.MapInboundClaims = false;
+        options.TokenValidationParameters.RequireSignedTokens = true;
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
-            ValidateAudience = true,
+            ValidateAudience = false,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
             ValidIssuer = jwtIssuer,
-            ValidAudience = jwtAudience,
-            IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(jwtSecret)),
-            ClockSkew = TimeSpan.Zero   // no grace period on expiry
+            IssuerSigningKey = new SymmetricSecurityKey(
+                                           System.Text.Encoding.UTF8.GetBytes(jwtSecret)),
+            ClockSkew = TimeSpan.FromMinutes(5),
+            NameClaimType = "sub",
+            RoleClaimType = "role"
         };
     });
 
@@ -87,6 +120,17 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+// allow react frontend without CORS issues
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
 var app = builder.Build();
 
 // Run SQL migrations via DbUp (before the app starts serving requests)
@@ -104,6 +148,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

@@ -12,7 +12,6 @@ public class TokenService(IConfiguration config)
     // Pull from config; fail fast if missing
     private string JwtSecret      => config["Jwt:Secret"]      ?? throw new InvalidOperationException("Jwt:Secret not configured.");
     private string JwtIssuer      => config["Jwt:Issuer"]      ?? throw new InvalidOperationException("Jwt:Issuer not configured.");
-    private string JwtAudience    => config["Jwt:Audience"]    ?? throw new InvalidOperationException("Jwt:Audience not configured.");
     private int    AccessTokenMin => int.Parse(config["Jwt:AccessTokenMinutes"]  ?? "15");
     private int    RefreshTokenDay => int.Parse(config["Jwt:RefreshTokenDays"]   ?? "7");
 
@@ -25,16 +24,15 @@ public class TokenService(IConfiguration config)
 
         var claims = new[]
         {
-            new Claim(JwtRegisteredClaimNames.Sub,   user.Id.ToString()),
-            new Claim(JwtRegisteredClaimNames.Email, user.Email),
-            new Claim(ClaimTypes.Name,               user.FirstName + " " + user.LastName),
-            new Claim(ClaimTypes.Role,               user.Role),
-            new Claim(JwtRegisteredClaimNames.Jti,   Guid.NewGuid().ToString()),
+            new Claim(JwtRegisteredClaimNames.Sub,    user.Id.ToString()),
+            new Claim(JwtRegisteredClaimNames.Email,  user.Email),
+            new Claim(JwtRegisteredClaimNames.GivenName, user.FirstName),
+            new Claim(JwtRegisteredClaimNames.FamilyName, user.LastName),
+            new Claim(JwtRegisteredClaimNames.Jti,    Guid.NewGuid().ToString()),
         };
 
         var token = new JwtSecurityToken(
             issuer:             JwtIssuer,
-            audience:           JwtAudience,
             claims:             claims,
             expires:            exp,
             signingCredentials: creds
