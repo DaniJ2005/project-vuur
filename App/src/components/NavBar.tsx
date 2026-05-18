@@ -1,11 +1,13 @@
 import React, { useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
 import { cartCount } from "../types/game";
 import GamepadIcon from "./icons/GamepadIcon";
 import SearchIcon from "./icons/SearchIcon";
 import CartIcon from "./icons/CartIcon";
 import HamburgerIcon from "./icons/HamburgerIcon";
+import ProfileDropdown from "./ProfileDropdown";
 
 // ── Nav link data ──────────────────────────────────────────────────────────────
 
@@ -20,9 +22,16 @@ const NAV_LINKS = [
 
 const NavBar: React.FC = () => {
   const { cartItems, openCart } = useCart();
+  const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const handleMobileLogout = () => {
+    setMobileOpen(false);
+    logout();
+    navigate("/");
+  };
 
   const doSearch = useCallback(() => {
     const q = searchQuery.trim();
@@ -98,19 +107,27 @@ const NavBar: React.FC = () => {
               )}
             </button>
 
-            {/* Login / Register */}
-            <a
-              href="/login"
-              className="hidden md:inline-flex items-center gap-2 border border-[#F25B29] text-[#F25B29] hover:bg-[#F25B29] hover:text-white px-4 py-2 rounded-md text-sm font-medium transition-all duration-200"
-            >
-              Inloggen
-            </a>
-            <a
-              href="/register"
-              className="hidden md:inline-flex items-center gap-2 bg-[#F25B29] hover:bg-[#d94e22] text-white px-4 py-2 rounded-md text-sm font-medium transition-all duration-200"
-            >
-              Registreren
-            </a>
+            {/* Auth area: Profile dropdown when logged in, else Login/Register */}
+            {isAuthenticated ? (
+              <div className="hidden md:block">
+                <ProfileDropdown />
+              </div>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="hidden md:inline-flex items-center gap-2 border border-[#F25B29] text-[#F25B29] hover:bg-[#F25B29] hover:text-white px-4 py-2 rounded-md text-sm font-medium transition-all duration-200"
+                >
+                  Inloggen
+                </Link>
+                <Link
+                  to="/register"
+                  className="hidden md:inline-flex items-center gap-2 bg-[#F25B29] hover:bg-[#d94e22] text-white px-4 py-2 rounded-md text-sm font-medium transition-all duration-200"
+                >
+                  Registreren
+                </Link>
+              </>
+            )}
 
             {/* Mobile Hamburger */}
             <button
@@ -130,19 +147,38 @@ const NavBar: React.FC = () => {
               <Link
                 key={href}
                 to={href}
+                onClick={() => setMobileOpen(false)}
                 className="block px-4 py-2 text-gray-300 hover:text-[#F25B29] text-sm font-medium"
               >
                 {label}
               </Link>
             ))}
-            <div className="px-4 pt-2 flex gap-2">
-              <a href="/login" className="flex-1 text-center border border-[#F25B29] text-[#F25B29] py-2 rounded-md text-sm font-medium">
-                Inloggen
-              </a>
-              <a href="/register" className="flex-1 text-center bg-[#F25B29] text-white py-2 rounded-md text-sm font-medium">
-                Registreren
-              </a>
-            </div>
+            {isAuthenticated ? (
+              <>
+                <div className="px-4 py-2 border-t border-[#1A1A1A] mt-2">
+                  <p className="text-white text-sm font-bold">{user?.firstName} {user?.lastName}</p>
+                  <p className="text-gray-500 text-xs">{user?.email}</p>
+                </div>
+                <Link to="/orders"   onClick={() => setMobileOpen(false)} className="block px-4 py-2 text-gray-300 hover:text-[#F25B29] text-sm font-medium">📦 Mijn Bestellingen</Link>
+                <Link to="/wishlist" onClick={() => setMobileOpen(false)} className="block px-4 py-2 text-gray-300 hover:text-[#F25B29] text-sm font-medium">⭐ Wishlist</Link>
+                <Link to="/settings" onClick={() => setMobileOpen(false)} className="block px-4 py-2 text-gray-300 hover:text-[#F25B29] text-sm font-medium">⚙️ Instellingen</Link>
+                <button
+                  onClick={handleMobileLogout}
+                  className="block w-full text-left px-4 py-2 text-red-400 hover:text-red-300 text-sm font-medium cursor-pointer"
+                >
+                  ↩ Uitloggen
+                </button>
+              </>
+            ) : (
+              <div className="px-4 pt-2 flex gap-2">
+                <Link to="/login" onClick={() => setMobileOpen(false)} className="flex-1 text-center border border-[#F25B29] text-[#F25B29] py-2 rounded-md text-sm font-medium">
+                  Inloggen
+                </Link>
+                <Link to="/register" onClick={() => setMobileOpen(false)} className="flex-1 text-center bg-[#F25B29] text-white py-2 rounded-md text-sm font-medium">
+                  Registreren
+                </Link>
+              </div>
+            )}
           </div>
         )}
       </div>

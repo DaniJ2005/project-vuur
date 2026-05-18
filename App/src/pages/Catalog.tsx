@@ -31,8 +31,8 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
 
 const TYPE_OPTIONS: { value: TypeFilter; label: string }[] = [
   { value: "all",  label: "Alle"            },
-  { value: "key",  label: "🔑 Digitale Key" },
-  { value: "disc", label: "💿 Fysieke Disc" },
+  { value: "key",  label: "Digitale Key" },
+  { value: "disc", label: "Fysieke Disc" },
 ];
 
 // ── Component ──────────────────────────────────────────────────────────────────
@@ -179,7 +179,7 @@ const Catalog: React.FC<Props> = ({ games }) => {
               <div className="flex flex-wrap gap-2">
                 {selectedType !== "all" && (
                   <FilterPill
-                    label={selectedType === "key" ? "🔑 Key" : "💿 Disc"}
+                    label={selectedType === "key" ? "Key" : "Disc"}
                     onRemove={() => setSelectedType("all")}
                   />
                 )}

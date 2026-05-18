@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
-import { cartTotal, cartCount, cartHasDisc } from "../types/game";
+import { cartTotal, cartCount } from "../types/game";
 import CloseIcon from "./icons/CloseIcon";
 import TrashIcon from "./icons/TrashIcon";
 import ArrowRightIcon from "./icons/ArrowRightIcon";
@@ -12,7 +12,7 @@ const CartSidebar: React.FC = () => {
   const { cartItems, cartOpen, closeCart, changeQty, removeFromCart } = useCart();
   const navigate = useNavigate();
   const total = cartTotal(cartItems);
-  const hasDisc = cartHasDisc(cartItems);
+  const hasDisc = cartItems.some((i) => i.game.type === "disc");
   const isEmpty = cartItems.length === 0;
 
   // Lock body scroll when open
@@ -23,7 +23,7 @@ const CartSidebar: React.FC = () => {
 
   const goToCheckout = () => {
     closeCart();
-    navigate(hasDisc ? "/checkout/disc" : "/checkout/key");
+    navigate("/checkout");
   };
 
   if (!cartOpen) return null;
@@ -93,9 +93,9 @@ const CartSidebar: React.FC = () => {
                     <p className="text-white text-sm font-bold truncate">{item.game.title}</p>
                     <div className="flex items-center gap-2 mt-0.5">
                       {item.game.type === "key" ? (
-                        <span className="text-blue-400 text-xs">🔑 Key</span>
+                        <span className="text-blue-400 text-xs">Key</span>
                       ) : (
-                        <span className="text-amber-400 text-xs">💿 Disc</span>
+                        <span className="text-amber-400 text-xs">Disc</span>
                       )}
                       <span className="text-gray-600 text-xs">{item.game.platform}</span>
                     </div>
@@ -136,7 +136,7 @@ const CartSidebar: React.FC = () => {
               {/* Disc warning */}
               {hasDisc && (
                 <div className="flex items-start gap-2 bg-amber-500/5 border border-amber-500/20 rounded-xl p-3 mt-2">
-                  <span className="text-amber-400 text-lg flex-shrink-0">💿</span>
+                  <span className="text-amber-400 text-lg flex-shrink-0"></span>
                   <p className="text-amber-400/80 text-xs leading-relaxed">
                     Je winkelwagen bevat een of meer fysieke discs. Levering vereist een bezorgadres.
                   </p>
