@@ -1,83 +1,32 @@
 import React, { useEffect } from "react";
-
-// ── Types ──────────────────────────────────────────────────────────────────────
-
-export type GameType = "key" | "disc";
-
-export type CartGame = {
-  id: number;
-  title: string;
-  platform: string;
-  price: number;
-  type: GameType;
-};
-
-export type CartItem = {
-  game: CartGame;
-  quantity: number;
-};
-
-type Props = {
-  isOpen: boolean;
-  onClose: () => void;
-  items: CartItem[];
-  onChangeQty: (gameId: number, delta: number) => void;
-  onRemove: (gameId: number) => void;
-};
-
-// ── Derived helpers ────────────────────────────────────────────────────────────
-
-export function cartTotal(items: CartItem[]): number {
-  return items.reduce((sum, item) => sum + item.game.price * item.quantity, 0);
-}
-
-export function cartCount(items: CartItem[]): number {
-  return items.reduce((sum, item) => sum + item.quantity, 0);
-}
-
-export function cartHasDisc(items: CartItem[]): boolean {
-  return items.some((item) => item.game.type === "disc");
-}
-
-// ── Icons ──────────────────────────────────────────────────────────────────────
-
-const CloseIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-  </svg>
-);
-
-const TrashIcon = () => (
-  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-  </svg>
-);
-
-const ArrowRightIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-  </svg>
-);
+import { useNavigate } from "react-router-dom";
+import { useCart } from "../context/CartContext";
+import { cartTotal, cartCount, cartHasDisc } from "../types/game";
+import CloseIcon from "./icons/CloseIcon";
+import TrashIcon from "./icons/TrashIcon";
+import ArrowRightIcon from "./icons/ArrowRightIcon";
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
-const CartSidebar: React.FC<Props> = ({ isOpen, onClose, items, onChangeQty, onRemove }) => {
-  const total = cartTotal(items);
-  const hasDisc = cartHasDisc(items);
-  const isEmpty = items.length === 0;
+const CartSidebar: React.FC = () => {
+  const { cartItems, cartOpen, closeCart, changeQty, removeFromCart } = useCart();
+  const navigate = useNavigate();
+  const total = cartTotal(cartItems);
+  const hasDisc = cartHasDisc(cartItems);
+  const isEmpty = cartItems.length === 0;
 
   // Lock body scroll when open
   useEffect(() => {
-    document.body.style.overflow = isOpen ? "hidden" : "";
+    document.body.style.overflow = cartOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
-  }, [isOpen]);
+  }, [cartOpen]);
 
   const goToCheckout = () => {
-    onClose();
-    window.location.href = hasDisc ? "/checkout/disc" : "/checkout/key";
+    closeCart();
+    navigate(hasDisc ? "/checkout/disc" : "/checkout/key");
   };
 
-  if (!isOpen) return null;
+  if (!cartOpen) return null;
 
   return (
     <>
@@ -92,7 +41,7 @@ const CartSidebar: React.FC<Props> = ({ isOpen, onClose, items, onChangeQty, onR
       {/* Backdrop */}
       <div
         className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
+        onClick={closeCart}
       />
 
       {/* Sidebar panel */}
@@ -104,14 +53,14 @@ const CartSidebar: React.FC<Props> = ({ isOpen, onClose, items, onChangeQty, onR
         <div className="flex items-center justify-between px-6 py-5 border-b border-[#1E1E1E]">
           <div>
             <h2 className="text-white font-black text-lg">Winkelwagen</h2>
-            <p className="text-gray-500 text-xs mt-0.5">{cartCount(items)} item(s)</p>
+            <p className="text-gray-500 text-xs mt-0.5">{cartCount(cartItems)} item(s)</p>
           </div>
           <button
-            onClick={onClose}
+            onClick={closeCart}
             className="w-9 h-9 cursor-pointer rounded-lg bg-[#1A1A1A] hover:bg-[#F25B29]/10 border border-[#2A2A2A] hover:border-[#F25B29]/30 flex items-center justify-center text-gray-400 hover:text-[#F25B29] transition-all duration-200"
             aria-label="Sluiten"
           >
-            <CloseIcon />
+            <CloseIcon className="w-4 h-4" />
           </button>
         </div>
 
@@ -125,7 +74,7 @@ const CartSidebar: React.FC<Props> = ({ isOpen, onClose, items, onChangeQty, onR
             </div>
           ) : (
             <>
-              {items.map((item) => (
+              {cartItems.map((item) => (
                 <div
                   key={item.game.id}
                   className="flex gap-3 bg-[#0D0D0D] border border-[#1E1E1E] rounded-xl p-3 group"
@@ -159,24 +108,24 @@ const CartSidebar: React.FC<Props> = ({ isOpen, onClose, items, onChangeQty, onR
                       {/* Quantity controls */}
                       <div className="flex items-center gap-1">
                         <button
-                          onClick={() => onChangeQty(item.game.id, -1)}
+                          onClick={() => changeQty(item.game.id, -1)}
                           className="w-6 h-6 cursor-pointer rounded bg-[#1A1A1A] border border-[#2A2A2A] hover:border-[#F25B29]/30 text-gray-400 hover:text-white text-xs flex items-center justify-center transition-all"
                         >
                           −
                         </button>
                         <span className="text-white text-xs w-5 text-center">{item.quantity}</span>
                         <button
-                          onClick={() => onChangeQty(item.game.id, 1)}
+                          onClick={() => changeQty(item.game.id, 1)}
                           className="w-6 h-6 cursor-pointer rounded bg-[#1A1A1A] border border-[#2A2A2A] hover:border-[#F25B29]/30 text-gray-400 hover:text-white text-xs flex items-center justify-center transition-all"
                         >
                           +
                         </button>
                         <button
-                          onClick={() => onRemove(item.game.id)}
+                          onClick={() => removeFromCart(item.game.id)}
                           className="w-6 h-6 cursor-pointer rounded bg-[#1A1A1A] border border-[#2A2A2A] hover:border-red-500/30 text-gray-500 hover:text-red-400 text-xs flex items-center justify-center transition-all ml-1"
                           aria-label="Verwijderen"
                         >
-                          <TrashIcon />
+                          <TrashIcon className="w-3 h-3" />
                         </button>
                       </div>
                     </div>
@@ -210,7 +159,7 @@ const CartSidebar: React.FC<Props> = ({ isOpen, onClose, items, onChangeQty, onR
               className="w-full cursor-pointer bg-[#F25B29] hover:bg-[#d94e22] text-white font-black py-3.5 rounded-xl transition-all duration-200 hover:shadow-[0_0_20px_rgba(242,91,41,0.3)] active:scale-95 flex items-center justify-center gap-2"
             >
               Afrekenen
-              <ArrowRightIcon />
+              <ArrowRightIcon className="w-4 h-4" />
             </button>
           </div>
         )}

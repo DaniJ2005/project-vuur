@@ -1,131 +1,14 @@
-import React from "react";
+import GameCard from "../components/GameCard";
+import NewReleaseRow from "../components/NewReleaseRow";
+import UspCard from "../components/UspCard";
+import ArrowRightIcon from "../components/icons/ArrowRightIcon";
+import { allGames } from "../data/catalogData";
+import { Platforms, USPs } from "../data/homeData";
 
-import GameCard from "../components/GameCard"
-import { type CatalogGame, type CartGame } from "../types/game"
+function Home() {
+  const featuredGames = allGames.filter((g) => g.isFeatured);
+  const newReleases = allGames.filter((g) => g.isNew);
 
-// ── Types ──────────────────────────────────────────────────────────────────────
-
-type Game = {
-  Title: string;
-  Platform: string;
-  Genre?: string;
-  Price: number;
-  OriginalPrice: number;
-  DiscountPercent: number;
-  Reviews?: number;
-};
-
-type NewRelease = {
-  Title: string;
-  Platform: string;
-  Genre?: string;
-  Price: number;
-};
-
-type USP = {
-  Icon: string;
-  Title: string;
-  Description: string;
-};
-
-type Props = {
-  FeaturedGames: CatalogGame[];
-  NewReleases: NewRelease[];
-  Platforms: string[];
-  USPs: USP[];
-  addToCart: (game: CartGame) => void;
-};
-
-// ── Sub-components ─────────────────────────────────────────────────────────────
-
-const ArrowRightIcon: React.FC<{ className?: string }> = ({ className }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-  </svg>
-);
-
-// const GameCard: React.FC<{ game: Game }> = ({ game }) => (
-//   <div className="group bg-[#111] border border-[#1E1E1E] hover:border-[#F25B29]/50 rounded-xl overflow-hidden transition-all duration-300 hover:shadow-[0_8px_30px_rgba(242,91,41,0.15)] hover:-translate-y-1">
-//     {/* Thumbnail */}
-//     <div className="relative aspect-[3/4] bg-[#1A1A1A] overflow-hidden">
-//       <img
-//         src={`https://placehold.co/300x400/1a1a1a/F25B29?text=${encodeURIComponent(game.Title)}`}
-//         alt={game.Title}
-//         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-//       />
-//       {game.DiscountPercent > 0 && (
-//         <div className="absolute top-2 left-2 bg-[#F25B29] text-white text-xs font-black px-2 py-1 rounded">
-//           -{game.DiscountPercent}%
-//         </div>
-//       )}
-//       <div className="absolute top-2 right-2 bg-[#0D0D0D]/80 backdrop-blur-sm border border-[#333] text-gray-300 text-xs px-2 py-1 rounded">
-//         {game.Platform}
-//       </div>
-//     </div>
-//     {/* Info */}
-//     <div className="p-4">
-//       <h3 className="text-white font-bold text-sm leading-tight mb-1 line-clamp-2">{game.Title}</h3>
-//       {game.Reviews !== undefined && (
-//         <div className="flex items-center gap-1 mb-3">
-//           <div className="flex text-[#F25B29] text-xs">★★★★☆</div>
-//           <span className="text-gray-500 text-xs">({game.Reviews})</span>
-//         </div>
-//       )}
-//       <div className="flex items-center justify-between">
-//         <div>
-//           {game.OriginalPrice > game.Price && (
-//             <span className="text-gray-600 text-xs line-through mr-1">
-//               €{game.OriginalPrice.toFixed(2)}
-//             </span>
-//           )}
-//           <span className="text-[#F25B29] font-black text-lg">€{game.Price.toFixed(2)}</span>
-//         </div>
-//         <button className="bg-[#F25B29] hover:bg-[#d94e22] text-white text-xs font-bold px-3 py-2 rounded-md transition-all duration-200 hover:scale-105">
-//           + Kopen
-//         </button>
-//       </div>
-//     </div>
-//   </div>
-// );
-
-const NewReleaseRow: React.FC<{ game: NewRelease }> = ({ game }) => (
-  <div className="group flex items-center gap-4 bg-[#111] hover:bg-[#161616] border border-[#1E1E1E] hover:border-[#F25B29]/30 rounded-xl p-4 transition-all duration-200 cursor-pointer">
-    <img
-      src={`https://placehold.co/80x80/1a1a1a/F25B29?text=${encodeURIComponent(game.Title.charAt(0))}`}
-      alt={game.Title}
-      className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
-    />
-    <div className="flex-1 min-w-0">
-      <h3 className="text-white font-bold text-sm group-hover:text-[#F25B29] transition-colors truncate">
-        {game.Title}
-      </h3>
-      <p className="text-gray-500 text-xs mt-0.5">
-        {game.Genre} · {game.Platform}
-      </p>
-    </div>
-    <div className="flex items-center gap-4 flex-shrink-0">
-      <span className="hidden sm:block text-gray-500 text-xs">Nieuw</span>
-      <span className="text-[#F25B29] font-black">€{game.Price.toFixed(2)}</span>
-      <button className="border border-[#F25B29] text-[#F25B29] hover:bg-[#F25B29] hover:text-white text-xs font-bold px-3 py-1.5 rounded-md transition-all duration-200">
-        Kopen
-      </button>
-    </div>
-  </div>
-);
-
-const UspCard: React.FC<{ usp: USP }> = ({ usp }) => (
-  <div className="bg-[#0D0D0D] border border-[#1E1E1E] hover:border-[#F25B29]/30 rounded-xl p-6 transition-all duration-300 group">
-    <div className="w-12 h-12 bg-[#F25B29]/10 border border-[#F25B29]/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-[#F25B29]/20 transition-colors">
-      <span className="text-2xl">{usp.Icon}</span>
-    </div>
-    <h3 className="text-white font-bold text-lg mb-2">{usp.Title}</h3>
-    <p className="text-gray-500 text-sm leading-relaxed">{usp.Description}</p>
-  </div>
-);
-
-// ── Page Component ─────────────────────────────────────────────────────────────
-
-function Home({ FeaturedGames, NewReleases, Platforms, USPs, addToCart}: Props) {
   return (
     <>
       {/* ── HERO ── */}
@@ -203,8 +86,8 @@ function Home({ FeaturedGames, NewReleases, Platforms, USPs, addToCart}: Props) 
             </a>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {FeaturedGames.map((game) => (
-              <GameCard key={game.title} game={game} onAddToCart={addToCart} />
+            {featuredGames.map((game) => (
+              <GameCard key={game.id} game={game} />
             ))}
           </div>
         </div>
@@ -249,8 +132,8 @@ function Home({ FeaturedGames, NewReleases, Platforms, USPs, addToCart}: Props) 
             </a>
           </div>
           <div className="space-y-3">
-            {NewReleases.map((game) => (
-              <NewReleaseRow key={game.Title} game={game} />
+            {newReleases.map((game) => (
+              <NewReleaseRow key={game.id} game={game} />
             ))}
           </div>
         </div>

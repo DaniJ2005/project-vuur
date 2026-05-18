@@ -1,9 +1,5 @@
-// ── Shared game types ──────────────────────────────────────────────────────────
-// Used by GameCard, Catalog, CartSidebar, and homeData.
- 
 export type GameType = "key" | "disc";
- 
-/** Full game model — used in the catalog and game detail page */
+
 export type CatalogGame = {
   id: number;
   title: string;
@@ -19,8 +15,7 @@ export type CatalogGame = {
   isNew: boolean;
   isFeatured: boolean;
 };
- 
-/** Minimal model for the cart — subset of CatalogGame */
+
 export type CartGame = {
   id: number;
   title: string;
@@ -28,8 +23,25 @@ export type CartGame = {
   price: number;
   type: GameType;
 };
- 
+
+export type CartItem = {
+  game: CartGame;
+  quantity: number;
+};
+
 export function toCatalogGame(g: CatalogGame): CartGame {
   return { id: g.id, title: g.title, platform: g.platform, price: g.price, type: g.type };
+}
+
+export function cartTotal(items: CartItem[]): number {
+  return items.reduce((sum, item) => sum + item.game.price * item.quantity, 0);
+}
+
+export function cartCount(items: CartItem[]): number {
+  return items.reduce((sum, item) => sum + item.quantity, 0);
+}
+
+export function cartHasDisc(items: CartItem[]): boolean {
+  return items.some((item) => item.game.type === "disc");
 }
  

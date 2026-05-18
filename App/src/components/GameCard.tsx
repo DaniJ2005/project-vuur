@@ -1,26 +1,18 @@
 import React from "react";
 import type { CatalogGame } from "../types/game";
-
-// ── Types ──────────────────────────────────────────────────────────────────────
+import { toCatalogGame } from "../types/game";
+import { useCart } from "../context/CartContext";
+import StarRating from "./StarRating";
 
 type Props = {
   game: CatalogGame;
-  onAddToCart: (game: CatalogGame) => void;
 };
-
-// ── Stars ──────────────────────────────────────────────────────────────────────
-
-const StarRating: React.FC<{ rating: number }> = ({ rating }) => (
-  <div className="flex text-[#F25B29] text-xs">
-    {[1, 2, 3, 4, 5].map((i) => (
-      <span key={i}>{i <= Math.floor(rating) ? "★" : "☆"}</span>
-    ))}
-  </div>
-);
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
-const GameCard: React.FC<Props> = ({ game, onAddToCart }) => (
+const GameCard: React.FC<Props> = ({ game }) => {
+  const { addToCart } = useCart();
+  return (
   <div className="group bg-[#111] border border-[#1E1E1E] hover:border-[#F25B29]/50 rounded-xl overflow-hidden transition-all duration-300 hover:shadow-[0_8px_30px_rgba(242,91,41,0.15)] hover:-translate-y-1 flex flex-col">
 
     {/* Thumbnail */}
@@ -96,7 +88,7 @@ const GameCard: React.FC<Props> = ({ game, onAddToCart }) => (
           <span className="text-[#F25B29] font-black text-xl">€{game.price.toFixed(2)}</span>
         </div>
         <button
-          onClick={() => onAddToCart(game)}
+          onClick={() => addToCart(toCatalogGame(game))}
           className="bg-[#F25B29] hover:bg-[#d94e22] text-white text-xs font-bold px-3 py-2 rounded-md transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
         >
           + Kopen
@@ -104,6 +96,7 @@ const GameCard: React.FC<Props> = ({ game, onAddToCart }) => (
       </div>
     </div>
   </div>
-);
+  );
+};
 
 export default GameCard;

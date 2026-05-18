@@ -1,13 +1,12 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import GameCard from "../components/GameCard";
+import FilterPill from "../components/FilterPill";
+import FilterButton from "../components/FilterButton";
 import type { CatalogGame } from "../types/game";
-
-// ── Types ──────────────────────────────────────────────────────────────────────
 
 type Props = {
   games: CatalogGame[];
-  initialSearch?: string; // populated from ?q= query param by the router
-  onAddToCart: (game: CatalogGame) => void;
 };
 
 type SortKey = "title" | "price_asc" | "price_desc" | "rating" | "discount";
@@ -36,46 +35,16 @@ const TYPE_OPTIONS: { value: TypeFilter; label: string }[] = [
   { value: "disc", label: "💿 Fysieke Disc" },
 ];
 
-// ── Filter pill ────────────────────────────────────────────────────────────────
-
-const FilterPill: React.FC<{ label: string; onRemove: () => void }> = ({ label, onRemove }) => (
-  <span className="flex items-center gap-1.5 bg-[#F25B29]/10 border border-[#F25B29]/30 text-[#F25B29] text-xs px-3 py-1 rounded-full font-medium">
-    {label}
-    <button onClick={onRemove} className="hover:text-white ml-0.5" aria-label="Filter verwijderen">✕</button>
-  </span>
-);
-
-// ── Filter button ──────────────────────────────────────────────────────────────
-
-const FilterButton: React.FC<{
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}> = ({ label, active, onClick }) => (
-  <button
-    onClick={onClick}
-    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
-      active
-        ? "bg-[#F25B29]/10 border border-[#F25B29]/40 text-[#F25B29] font-bold"
-        : "text-gray-400 hover:text-gray-200 hover:bg-[#1A1A1A] border border-transparent"
-    }`}
-  >
-    {label}
-  </button>
-);
-
 // ── Component ──────────────────────────────────────────────────────────────────
 
-const Catalog: React.FC<Props> = ({ games, initialSearch = "", onAddToCart }) => {
-  const [search, setSearch]             = useState(initialSearch);
+const Catalog: React.FC<Props> = ({ games }) => {
+  const [searchParams] = useSearchParams();
+  const [search, setSearch]             = useState(searchParams.get("q") ?? "");
   const [selectedType, setSelectedType] = useState<TypeFilter>("all");
   const [selectedPlatform, setSelectedPlatform] = useState("Alle");
   const [selectedGenre, setSelectedGenre]       = useState("Alle");
   const [maxPrice, setMaxPrice]         = useState(999);
   const [sortBy, setSortBy]             = useState<SortKey>("title");
-
-  // Sync if the parent updates initialSearch (e.g. React Router query change)
-  useEffect(() => { setSearch(initialSearch); }, [initialSearch]);
 
   const allPlatforms = useMemo(
     () => ["Alle", ...Array.from(new Set(games.map((g) => g.platform))).sort()],
@@ -258,7 +227,7 @@ const Catalog: React.FC<Props> = ({ games, initialSearch = "", onAddToCart }) =>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
                 {filteredGames.map((game) => (
-                  <GameCard key={game.id} game={game} onAddToCart={onAddToCart} />
+                  <GameCard key={game.id} game={game} />
                 ))}
               </div>
             )}
