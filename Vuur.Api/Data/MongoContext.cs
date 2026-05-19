@@ -1,4 +1,7 @@
 using MongoDB.Driver;
+using Vuur.Api.Features.Products;
+
+
 
 namespace Vuur.Api.Data;
 
@@ -18,6 +21,11 @@ public class MongoContext
 
     public IMongoCollection<T> GetCollection<T>(string name)
         => _database.GetCollection<T>(name);
+    
+    public IMongoCollection<ProductDocument> Products
+        => GetCollection<ProductDocument>("products");
+
+
 
     // Typed accessors — add one per collection as you build features
     // public IMongoCollection<ProductDocument> Products
