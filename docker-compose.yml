@@ -1,12 +1,41 @@
 services:
-  api:
-    build:
-      context: ./api
-      dockerfile: Dockerfile
-    container_name: DataTech-Api
-    ports:
-      - "8008:8008"
-    volumes:
-      - ./api:/app
+  postgres:
+    image: postgres:16
+    container_name: vuur_postgres
+    restart: unless-stopped
     environment:
-      ASPNETCORE_ENVIRONMENT: Development1
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 69892432
+      POSTGRES_DB: vuur
+    ports:
+      - "5432:5432"
+    volumes:
+      - vuur_postgres_data:/var/lib/postgresql/data
+
+  mongo:
+    image: mongo:7
+    container_name: vuur_mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongo
+      MONGO_INITDB_ROOT_PASSWORD: 69892432
+      MONGO_INITDB_DATABASE: vuur_db
+    ports:
+      - "27017:27017"
+    volumes:
+      - vuur_mongo_data:/data/db
+
+  redis:
+    image: redis:7
+    container_name: vuur_redis
+    restart: unless-stopped
+    command: redis-server --requirepass 69892432
+    ports:
+      - "6379:6379"
+    volumes:
+      - vuur_redis_data:/data
+
+volumes:
+  vuur_postgres_data:
+  vuur_mongo_data:
+  vuur_redis_data:

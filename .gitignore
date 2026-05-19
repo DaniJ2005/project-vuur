@@ -108,3 +108,9 @@ docker-compose.override.yml
 *.swp
 *.tmp
 *.temp
+
+############################
+# .env
+############################
+
+*.env

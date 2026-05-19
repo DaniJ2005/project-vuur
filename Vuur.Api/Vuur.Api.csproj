@@ -5,9 +5,41 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
+  
+  <ItemGroup>
+    <!-- PostgreSQL driver (no EF Core) -->
+    <PackageReference Include="Npgsql" Version="10.0.0" />
+
+    <!-- Dapper - thin SQL mapper, we write the SQL -->
+    <PackageReference Include="Dapper" Version="2.1.35" />
+
+    <!-- DbUp - runs versioned .sql migration scripts -->
+	<PackageReference Include="DbUp-PostgreSQL" Version="5.0.37" />
+
+    <!-- MongoDB -->
+    <PackageReference Include="MongoDB.Driver" Version="2.26.0" />
+
+    <!-- Redis -->
+    <PackageReference Include="StackExchange.Redis" Version="2.7.33" />
+
+    <!-- Load .env file in development -->
+    <PackageReference Include="DotNetEnv" Version="3.1.1" />
+
+    <!-- Swagger -->
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+
+	<!-- JWT Authentication -->
+	<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
+  </ItemGroup>
+
+  <!-- Embed all .sql migration scripts into the assembly -->
+  <ItemGroup>
+    <EmbeddedResource Include="Migrations\**\*.sql" />
+  </ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+	  <Folder Include="Features\Cart\" />
+	  <Folder Include="Features\Admin\" />
 	</ItemGroup>
 
 </Project>
