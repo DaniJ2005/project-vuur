@@ -1,41 +1,30 @@
 services:
-  postgres:
-    image: postgres:16
-    container_name: vuur_postgres
+  frontend:
+    # Op de server: image wordt van Docker Hub gepulld (door GitHub Actions gepushed).
+    # Lokaal kun je hetzelfde image bouwen met:  docker compose build frontend
+    # Let op: 'danij2005' moet jouw Docker Hub username zijn (kan afwijken van GitHub).
+    image: danij2005/project-vuur-frontend:latest
+    build:
+      context: ./App
+      dockerfile: Dockerfile
+    container_name: vuur_frontend
     restart: unless-stopped
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 69892432
-      POSTGRES_DB: vuur
     ports:
-      - "5432:5432"
-    volumes:
-      - vuur_postgres_data:/var/lib/postgresql/data
+      - "80:80"
 
-  mongo:
-    image: mongo:7
-    container_name: vuur_mongo
+  filebrowser:
+    image: filebrowser/filebrowser:latest
+    container_name: vuur_filebrowser
     restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      # Mount de home folder zodat je het project en logs/configs kunt zien.
+      - ${HOME}:/srv
+      # Persistent config + user database voor filebrowser zelf.
+      - vuur_filebrowser_data:/database
     environment:
-      MONGO_INITDB_ROOT_USERNAME: mongo
-      MONGO_INITDB_ROOT_PASSWORD: 69892432
-      MONGO_INITDB_DATABASE: vuur_db
-    ports:
-      - "27017:27017"
-    volumes:
-      - vuur_mongo_data:/data/db
-
-  redis:
-    image: redis:7
-    container_name: vuur_redis
-    restart: unless-stopped
-    command: redis-server --requirepass 69892432
-    ports:
-      - "6379:6379"
-    volumes:
-      - vuur_redis_data:/data
+      - FB_DATABASE=/database/filebrowser.db
 
 volumes:
-  vuur_postgres_data:
-  vuur_mongo_data:
-  vuur_redis_data:
+  vuur_filebrowser_data:

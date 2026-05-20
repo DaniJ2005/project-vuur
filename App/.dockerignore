@@ -1,0 +1,25 @@
+# Node
+node_modules
+npm-debug.log*
+
+# Build output (wordt in de image opnieuw gegenereerd)
+dist
+build
+
+# Editor / OS
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Git / CI
+.git
+.gitignore
+.github
+
+# Env files - nooit secrets in een image
+.env
+.env.*
+
+# Logs
+*.log
