@@ -114,3 +114,14 @@ docker-compose.override.yml
 ############################
 
 *.env
+
+############################
+# SSH / deploy keys - NOOIT committen
+############################
+vuur_deploy_key
+vuur_deploy_key.pub
+*_deploy_key
+*_deploy_key.pub
+id_rsa
+id_ed25519
+*.pem
