@@ -62,27 +62,15 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.name }}
 
-  # -------- Job 2: compose file + mongo-init naar server kopieren --------
-  # Aparte job zodat hij pas draait als beide images succesvol gepushed zijn.
+  # -------- Job 2: server SSH'en en compose herstarten --------
+  # NB: docker-compose.yml en Vuur.Api/mongo-init.js worden handmatig naar de
+  # server gekopieerd (zie DEPLOY.md). De workflow gaat ervan uit dat die
+  # files al actueel zijn op ~/vuur/ — hij pullt alleen nieuwe images en
+  # herstart de containers.
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      # docker-compose.yml en mongo-init.js synchroniseren met de server.
-      # De override.yml NIET — die zet DB-ports lokaal open, op productie blijven ze dicht.
-      - name: Copy compose + mongo-init naar server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 22
-          source: "docker-compose.yml,Vuur.Api/mongo-init.js"
-          target: "~/vuur/"
-
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
