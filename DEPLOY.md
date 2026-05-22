@@ -254,22 +254,32 @@ chmod 600 .env  # alleen jij mag dit lezen
 > Belangrijk: kopieer `docker-compose.override.yml` NIET naar de server.
 > Op productie willen we de DB-ports NIET extern bereikbaar hebben.
 
-### API image bouwen en deployen (handmatig, eerste keer)
+### Eerste keer op de server: databases + api opstarten
+
+Na de eerste push naar `main` heeft GitHub Actions de frontend + api image
+al gepushed en `docker-compose.yml` naar `~/vuur/` gescp't. Wat nog mist:
+de databases zijn nog nooit gestart. Dat doe je 1x handmatig — daarna blijven
+ze met `restart: unless-stopped` gewoon doordraaien.
 
 ```bash
-# Op je laptop:
-docker build -t <jouw-dockerhub-username>/project-vuur-api:latest ./Vuur.Api
-docker push <jouw-dockerhub-username>/project-vuur-api:latest
-
-# Op de server:
+ssh <jouw-user>@145.24.237.105
 cd ~/vuur
+
+# Pull alle images (DB images komen nu binnen vanaf Docker Hub).
 docker compose pull
-docker compose up -d
-docker compose ps
-docker compose logs api      # check op migrations success + listening
+
+# Start alleen de DBs eerst, zodat hun healthchecks groen worden.
+docker compose up -d postgres mongo redis
+docker compose ps               # alle 3 moeten "healthy" worden
+
+# Daarna api + frontend (die wachten via depends_on op gezonde DBs).
+docker compose up -d api frontend
+docker compose logs api         # check op migrations success + Now listening on :8080
 ```
 
-Open: **http://145.24.237.105:8080/swagger**
+Open: **http://145.24.237.105:8080/swagger** (alleen als
+`ASPNETCORE_ENVIRONMENT` op Development staat — by default is dat Production,
+zie compose).
 
 ### Wat is er veranderd in de poorten
 
@@ -280,12 +290,19 @@ Open: **http://145.24.237.105:8080/swagger**
 | 8081   | filebrowser (was 8080) |
 | intern | postgres, mongo, redis |
 
-### GitHub Actions workflow uitbreiden (TODO)
+### GitHub Actions — wat draait er automatisch
 
-De huidige workflow bouwt alleen het frontend image. Voor volledige
-automatisering moet `.github/workflows/deploy-frontend.yml` worden uitgebreid
-met een tweede build-job voor de API (of een aparte workflow). Dat is een
-volgende stap — voor nu doe je de API-deploy handmatig zoals hierboven.
+De workflow `.github/workflows/deploy.yml` doet bij elke push naar `main` die
+iets in `App/`, `Vuur.Api/`, `docker-compose.yml`, of de workflow zelf raakt:
+
+1. Bouwt frontend + api image **parallel** (matrix-strategie) en pusht ze naar Docker Hub.
+2. Kopieert `docker-compose.yml` + `Vuur.Api/mongo-init.js` via `scp` naar `~/vuur/` op de server.
+3. SSH't naar de server, draait `docker compose pull frontend api` + `docker compose up -d`, en ruimt dangling images op.
+
+> `docker-compose.override.yml` wordt **niet** gesynced — die file zet DB-ports
+> lokaal open, op productie willen we ze dicht houden.
+
+Een handmatige deploy forceren? Ga naar **Actions → Deploy → Run workflow**.
 
 ---
 
