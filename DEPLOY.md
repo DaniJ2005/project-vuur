@@ -213,6 +213,82 @@ http://145.24.237.105 en zie je de update live.
 
 ---
 
+## Fase 9 — API + databases erbij zetten
+
+Vanaf nu draait er naast de frontend ook een ASP.NET API met Postgres,
+MongoDB en Redis. Lokaal werkt iedereen tegen z'n eigen containers; de server
+draait een identieke stack op productie-credentials.
+
+### Lokaal (1x per teamlid)
+
+```bash
+# In de root van de repo:
+cp .env.example .env
+# Open .env en zet voor elke variabele een sterke waarde.
+# Daarna:
+docker compose up -d
+docker compose ps         # alles op "healthy" / "running"
+docker compose logs api   # migrations + Now listening on :8080
+```
+
+Test de API: `http://localhost:8080/swagger`.
+
+De DB-ports (5432, 27017, 6379) zijn lokaal exposed via
+`docker-compose.override.yml` — handig voor pgAdmin / Mongo Compass / redis-cli.
+
+### Op de server (1x)
+
+```bash
+# Vanaf je laptop, vanuit project root:
+scp .env.example <jouw-user>@145.24.237.105:~/vuur/
+scp docker-compose.yml <jouw-user>@145.24.237.105:~/vuur/
+
+# Op de server:
+ssh <jouw-user>@145.24.237.105
+cd ~/vuur
+cp .env.example .env
+nano .env       # vul ECHTE productie wachtwoorden in, lange JWT secret
+chmod 600 .env  # alleen jij mag dit lezen
+```
+
+> Belangrijk: kopieer `docker-compose.override.yml` NIET naar de server.
+> Op productie willen we de DB-ports NIET extern bereikbaar hebben.
+
+### API image bouwen en deployen (handmatig, eerste keer)
+
+```bash
+# Op je laptop:
+docker build -t <jouw-dockerhub-username>/project-vuur-api:latest ./Vuur.Api
+docker push <jouw-dockerhub-username>/project-vuur-api:latest
+
+# Op de server:
+cd ~/vuur
+docker compose pull
+docker compose up -d
+docker compose ps
+docker compose logs api      # check op migrations success + listening
+```
+
+Open: **http://145.24.237.105:8080/swagger**
+
+### Wat is er veranderd in de poorten
+
+| Poort  | Service     |
+|--------|-------------|
+| 80     | frontend    |
+| 8080   | api         |
+| 8081   | filebrowser (was 8080) |
+| intern | postgres, mongo, redis |
+
+### GitHub Actions workflow uitbreiden (TODO)
+
+De huidige workflow bouwt alleen het frontend image. Voor volledige
+automatisering moet `.github/workflows/deploy-frontend.yml` worden uitgebreid
+met een tweede build-job voor de API (of een aparte workflow). Dat is een
+volgende stap — voor nu doe je de API-deploy handmatig zoals hierboven.
+
+---
+
 ## Veelgemaakte fouten
 
 - **`unauthorized: incorrect username or password`** bij `docker push` in

@@ -1,0 +1,39 @@
+# Build output - moet in de container worden gebouwd, niet meegekopieerd.
+bin/
+obj/
+
+# IDE en user files.
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Secrets - mogen NOOIT in een image image terechtkomen.
+.env
+*.env
+appsettings.Development.json
+secrets.json
+**/secrets.json
+
+# Cache en logs.
+*.log
+*.lscache
+
+# .http test files niet nodig in productie.
+*.http
+
+# Git en CI metadata.
+.git/
+.gitignore
+.github/
+
+# Docker zelf.
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# README hoeft niet in image.
+README.md
