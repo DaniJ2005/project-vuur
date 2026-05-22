@@ -78,7 +78,7 @@ function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-10">
             <div>
-              <h2 className="text-3xl font-black text-white">🔥 Hot Deals</h2>
+              <h2 className="text-3xl font-black text-white">Vlammende Deals</h2>
               <p className="text-gray-500 mt-1 text-sm">Beperkte tijd. Grijp je kans.</p>
             </div>
             <a href="/deals" className="text-[#F25B29] hover:text-[#d94e22] font-semibold text-sm transition-colors">
