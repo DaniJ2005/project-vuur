@@ -254,41 +254,13 @@ chmod 600 .env  # alleen jij mag dit lezen
 > Belangrijk: kopieer `docker-compose.override.yml` NIET naar de server.
 > Op productie willen we de DB-ports NIET extern bereikbaar hebben.
 
-### `docker-compose.yml` + `mongo-init.js` naar de server kopieren (handmatig)
-
-De GitHub Actions workflow synct deze files **niet** automatisch — `scp`
-vanaf een Actions runner werkt niet betrouwbaar door de schoolfirewall.
-Doe het dus met de hand vanaf je laptop, telkens als een van deze twee
-files is veranderd:
-
-```bash
-# Vanuit project-root op je laptop:
-
-# 1) Maak de Vuur.Api submap op de server (alleen de eerste keer nodig).
-ssh <jouw-user>@145.24.237.105 "mkdir -p ~/vuur/Vuur.Api"
-
-# 2) Kopieer beide files. -p behoudt timestamps, handig bij debuggen.
-scp -p docker-compose.yml         <jouw-user>@145.24.237.105:~/vuur/docker-compose.yml
-scp -p Vuur.Api/mongo-init.js     <jouw-user>@145.24.237.105:~/vuur/Vuur.Api/mongo-init.js
-
-# 3) Verifieer en laat compose direct de wijzigingen oppakken.
-ssh <jouw-user>@145.24.237.105 "cd ~/vuur && docker compose config | head -20 && docker compose up -d"
-```
-
-`docker compose config` parset je compose-file + `.env` en print het
-resultaat — als hij zonder errors door komt, is je file syntactisch goed
-en zijn alle `${VARS}` resolved. `up -d` daarna herstart alleen containers
-waarvan de config of het image is veranderd.
-
-> Kopieer `docker-compose.override.yml` **niet** mee. Die file zet de
-> DB-poorten lokaal open; op productie willen we ze dicht houden.
-
 ### Eerste keer op de server: databases + api opstarten
 
 Na de eerste push naar `main` heeft GitHub Actions de frontend + api image
-gepushed naar Docker Hub. Wat nog mist: `.env` invullen, compose handmatig
-kopieren (zie hierboven), en de databases voor het eerst opstarten. Daarna
-blijven ze met `restart: unless-stopped` gewoon doordraaien.
+naar Docker Hub gepushed en `docker-compose.yml` + `Vuur.Api/mongo-init.js`
+naar `~/vuur/` op de server gescp't. Wat nog mist: `.env` invullen en de
+databases voor het eerst opstarten. Daarna blijven ze met
+`restart: unless-stopped` gewoon doordraaien.
 
 ```bash
 ssh <jouw-user>@145.24.237.105
@@ -324,12 +296,20 @@ zie compose).
 De workflow `.github/workflows/deploy.yml` doet bij elke push naar `main` die
 iets in `App/`, `Vuur.Api/`, `docker-compose.yml`, of de workflow zelf raakt:
 
-1. Bouwt frontend + api image **parallel** (matrix-strategie) en pusht ze naar Docker Hub.
-2. SSH't naar de server, draait `docker compose pull frontend api` + `docker compose up -d`, en ruimt dangling images op.
+1. **Job `build-and-push`** (op een GitHub-hosted Ubuntu runner): bouwt
+   frontend + api image **parallel** (matrix-strategie) en pusht ze naar
+   Docker Hub.
+2. **Job `deploy`** (op onze **self-hosted runner**): scp't
+   `docker-compose.yml` + `Vuur.Api/mongo-init.js` naar `~/vuur/`, en draait
+   `docker compose pull frontend api` + `docker compose up -d`. Eindigt met
+   `docker image prune -f` om disk space te besparen.
 
-> `docker-compose.yml` en `Vuur.Api/mongo-init.js` worden **handmatig** naar
-> de server gekopieerd (zie sectie hierboven). De workflow gaat ervan uit dat
-> die files al actueel zijn in `~/vuur/`.
+> De deploy-job draait expliciet op `runs-on: self-hosted` omdat de
+> schoolfirewall geen SSH/SCP van Azure-runners doorlaat. De self-hosted
+> runner zit binnen het schoolnetwerk en kan de server wel bereiken.
+
+> `docker-compose.override.yml` wordt **niet** gesynced — die file zet
+> DB-ports lokaal open, op productie willen we ze dicht houden.
 
 Een handmatige deploy forceren? Ga naar **Actions → Deploy → Run workflow**.
 
