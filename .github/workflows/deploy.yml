@@ -1,0 +1,104 @@
+name: Deploy
+
+# Bouwt en deployt frontend + api bij elke push naar main
+# als er iets in App/, Vuur.Api/, docker-compose.yml, of deze workflow zelf is veranderd.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "App/**"
+      - "Vuur.Api/**"
+      - "docker-compose.yml"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch: # ook handmatig te starten via de Actions tab
+
+jobs:
+  # -------- Job 1: images bouwen en naar Docker Hub pushen --------
+  # Matrix draait frontend en api parallel — scheelt wachttijd en houdt
+  # de stappen DRY (1x configureren, 2x uitvoeren).
+  build-and-push:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false # als frontend faalt, blijf api wel proberen (en andersom)
+      matrix:
+        include:
+          - name: frontend
+            context: ./App
+            image: project-vuur-frontend
+          - name: api
+            context: ./Vuur.Api
+            image: project-vuur-api
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login bij Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Image tags / metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image }}
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short
+
+      - name: Build en push image (${{ matrix.name }})
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.context }}/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # Aparte cache-scope per image, anders overschrijven ze elkaars layers.
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+  # -------- Job 2: compose file + mongo-init naar server kopieren --------
+  # Aparte job zodat hij pas draait als beide images succesvol gepushed zijn.
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # docker-compose.yml en mongo-init.js synchroniseren met de server.
+      # De override.yml NIET — die zet DB-ports lokaal open, op productie blijven ze dicht.
+      - name: Copy compose + mongo-init naar server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          source: "docker-compose.yml,Vuur.Api/mongo-init.js"
+          target: "~/vuur/"
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            set -e
+            cd ~/vuur
+
+            # Public Docker Hub images - geen docker login nodig op de server.
+            # Pull de nieuwste frontend + api, en laat compose alleen wat veranderd is herstarten.
+            # Databases (postgres/mongo/redis) hebben geen nieuwe image, dus die blijven gewoon draaien.
+            docker compose pull frontend api
+            docker compose up -d
+
+            # Dangling images (oude versies van frontend/api) opruimen.
+            docker image prune -f
