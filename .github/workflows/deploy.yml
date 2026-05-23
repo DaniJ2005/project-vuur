@@ -63,10 +63,12 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.name }}
 
   # -------- Job 2: compose file syncen + server herstarten --------
-  # Belangrijk: runs-on is hier `self-hosted` (niet ubuntu-latest)! De
-  # schoolfirewall blokkeert SSH/SCP vanuit Azure-runners, maar onze
+  # Belangrijk: runs-on is hier `self-hosted` (niet ubuntu-latest)
+
+  # De schoolfirewall blokkeert SSH/SCP vanuit Azure-runners, maar onze
   # self-hosted runner zit binnen het schoolnetwerk en kan de server wel
   # bereiken op poort 22.
+
   deploy:
     needs: build-and-push
     runs-on: self-hosted
