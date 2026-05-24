@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo } from "react";
-import { Link, Navigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { Link } from "react-router-dom";
 import { useWishlist } from "../context/WishlistContext";
 import { useCart } from "../context/CartContext";
 import { allGames } from "../data/catalogData";
@@ -8,7 +7,6 @@ import { toCatalogGame } from "../types/game";
 import StarRating from "../components/StarRating";
 
 const Wishlist: React.FC = () => {
-  const { isAuthenticated } = useAuth();
   const { wishlist, removeFromWishlist } = useWishlist();
   const { addToCart, openCart } = useCart();
 
@@ -20,8 +18,6 @@ const Wishlist: React.FC = () => {
     () => allGames.filter((g) => wishlist.includes(g.id)),
     [wishlist]
   );
-
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
 
   const moveToCart = (gameId: number) => {
     const game = allGames.find((g) => g.id === gameId);
@@ -36,7 +32,7 @@ const Wishlist: React.FC = () => {
       <div className="border-b border-[#1A1A1A]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <h1 className="text-3xl font-black text-white mb-1 flex items-center gap-2">
-            <span>⭐</span> Mijn Wishlist
+            Mijn Wishlist
           </h1>
           <p className="text-gray-500 text-sm">
             {games.length} game(s) opgeslagen
@@ -98,7 +94,7 @@ const Wishlist: React.FC = () => {
                 </div>
 
                 {/* Price */}
-                <div className="text-right flex-shrink-0">
+                <div className="text-right shrink-0">
                   {game.originalPrice > game.price && (
                     <span className="text-gray-600 text-xs line-through block">
                       €{game.originalPrice.toFixed(2)}
@@ -108,7 +104,7 @@ const Wishlist: React.FC = () => {
                 </div>
 
                 {/* Actions */}
-                <div className="flex flex-col gap-2 flex-shrink-0">
+                <div className="flex flex-col gap-2 shrink-0">
                   <button
                     onClick={() => moveToCart(game.id)}
                     className="bg-[#F25B29] hover:bg-[#d94e22] text-white text-xs font-bold px-4 py-2 rounded-md transition-all cursor-pointer"

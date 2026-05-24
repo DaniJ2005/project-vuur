@@ -13,6 +13,7 @@ import Footer from "./components/Footer";
 import NavBar from "./components/NavBar";
 import CartSidebar from "./components/CartSidebar";
 import ScrollToTop from "./components/ScrollToTop";
+import { ProtectedRoute } from "@/features/auth/ProtectedRoute";
 import { allGames } from "./data/catalogData";
 
 function App() {
@@ -29,9 +30,13 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/checkout" element={<Checkout />} />
-          <Route path="/orders" element={<Orders />} />
-          <Route path="/wishlist" element={<Wishlist />} />
-          <Route path="/settings" element={<Settings />} />
+
+          {/* Auth Protected Routes */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/orders" element={<Orders />} />
+            <Route path="/wishlist" element={<Wishlist />} />
+            <Route path="/settings" element={<Settings />} />
+          </Route>
         </Routes>
       </main>
       <Footer />

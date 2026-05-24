@@ -1,3 +1,4 @@
+import { useAuth } from "@/features/auth/AuthProvider";
 import GameCard from "../components/GameCard";
 import NewReleaseRow from "../components/NewReleaseRow";
 import UspCard from "../components/UspCard";
@@ -8,6 +9,9 @@ import { Platforms, USPs } from "../data/homeData";
 function Home() {
   const featuredGames = allGames.filter((g) => g.isFeatured);
   const newReleases = allGames.filter((g) => g.isNew);
+
+  const { isAuthenticated, user } = useAuth();
+  
 
   return (
     <>
@@ -155,11 +159,12 @@ function Home() {
       </section>
 
       {/* ── CTA BANNER ── */}
-      <section className="bg-[#0D0D0D] py-20 border-t border-[#1A1A1A]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="bg-gradient-to-br from-[#F25B29]/20 to-[#0D0D0D] border border-[#F25B29]/30 rounded-2xl p-12">
-            <h2 className="text-4xl font-black text-white mb-4">Klaar om te beginnen?</h2>
-            <p className="text-gray-400 text-lg mb-8">
+      {!isAuthenticated ? (
+        <section className="bg-[#0D0D0D] py-20 border-t border-[#1A1A1A]">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div className="bg-gradient-to-br from-[#F25B29]/20 to-[#0D0D0D] border border-[#F25B29]/30 rounded-2xl p-12">
+              <h2 className="text-4xl font-black text-white mb-4">Klaar om te beginnen?</h2>
+              <p className="text-gray-400 text-lg mb-8">
               Maak een gratis account aan en ontdek meer dan 2.500 games.
             </p>
             <a
@@ -172,7 +177,8 @@ function Home() {
           </div>
         </div>
       </section>
-    </>
+      ) : ""}
+  </>
   );
 }
 
