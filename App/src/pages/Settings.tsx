@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "@/features/auth/AuthProvider";
 import { useAddresses, type Address, type AddressDraft } from "../context/AddressContext";
 
 const INPUT_CLASS =
@@ -115,7 +114,7 @@ const AddressForm: React.FC<{
 };
 
 const Settings: React.FC = () => {
-  const { user, isAuthenticated, updateProfile } = useAuth();
+  const { user } = useAuth();
   const { addresses, addAddress, updateAddress, removeAddress, setDefault } = useAddresses();
 
   const [firstName, setFirstName] = useState(user?.firstName ?? "");
@@ -136,10 +135,11 @@ const Settings: React.FC = () => {
     return () => window.clearTimeout(t);
   }, [savedNotice]);
 
-  if (!isAuthenticated || !user) return <Navigate to="/login" replace />;
+  // Settings is rendered binnen <ProtectedRoute>, dus user is hier non-null.
+  if (!user) return null;
 
   const saveProfile = () => {
-    updateProfile({ firstName, lastName, email });
+    // TODO: wire to PATCH /auth/me when backend endpoint exists.
     setSavedNotice(true);
   };
 
@@ -258,7 +258,7 @@ const Settings: React.FC = () => {
                       </p>
                       <p className="text-gray-500 text-sm">{a.country}{a.phone ? ` · ${a.phone}` : ""}</p>
                     </div>
-                    <div className="flex flex-col gap-2 flex-shrink-0">
+                    <div className="flex flex-col gap-2 shrink-0">
                       {!a.isDefault && (
                         <button
                           onClick={() => setDefault(a.id)}

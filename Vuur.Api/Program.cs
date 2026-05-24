@@ -9,16 +9,13 @@ using Vuur.Api.Features.Users;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Load .env in development and push values into configuration
+// Load .env from the solution root (one directory above Vuur.Api).
 if (builder.Environment.IsDevelopment())
 {
-    var envPath = Path.Combine(Directory.GetCurrentDirectory(), ".env");
-    if (File.Exists(envPath))
-    {
-        DotNetEnv.Env.Load(envPath);
-        // Push loaded env vars into IConfiguration so contexts can read them
-        builder.Configuration.AddEnvironmentVariables();
-    }
+    var envPath = Path.Combine(Directory.GetCurrentDirectory(), "..", ".env");
+    DotNetEnv.Env.Load(envPath);
+    // Push loaded env vars into IConfiguration so contexts can read them
+    builder.Configuration.AddEnvironmentVariables();
 }
 
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
@@ -63,8 +60,8 @@ builder.Services.AddScoped<PaymentRepository>();
 builder.Services.AddScoped<PaymentReadRepository>();
 builder.Services.AddScoped<PaymentService>();
 
-var jwtSecret = builder.Configuration["Jwt:Secret"] ?? throw new InvalidOperationException("Jwt:Secret not configured.");
-var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? throw new InvalidOperationException("Jwt:Issuer not configured.");
+var jwtSecret = builder.Configuration["JWT_SECRET"] ?? throw new InvalidOperationException("JWT_SECRET not configured.");
+var jwtIssuer = builder.Configuration["JWT_ISSUER"] ?? throw new InvalidOperationException("JWT_ISSUER not configured.");
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -120,25 +117,25 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// allow react frontend without CORS issues
+var frontendOrigin = builder.Configuration["Cors:FrontendOrigin"]
+    ?? throw new InvalidOperationException("Cors:FrontendOrigin not configured.");
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("Frontend", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins(frontendOrigin)
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials();
     });
 });
 
 var app = builder.Build();
 
 // Run SQL migrations via DbUp (before the app starts serving requests)
-var connectionString = Environment.GetEnvironmentVariable("POSTGRES_CONNECTION_STRING")
-    ?? app.Configuration["POSTGRES_CONNECTION_STRING"]
-    ?? throw new InvalidOperationException("POSTGRES_CONNECTION_STRING is not configured.");
-
-MigrationRunner.Run(connectionString);
+var pgContext = app.Services.GetRequiredService<PostgresContext>();
+pgContext.RunMigrations();
 
 // middleware pipeline
 if (app.Environment.IsDevelopment())
@@ -147,8 +144,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+
+
 app.UseHttpsRedirection();
-app.UseCors("AllowAll");
+app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

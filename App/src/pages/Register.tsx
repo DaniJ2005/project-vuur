@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import axios from "axios";
+import { useRegister } from "@/features/auth/auth.hooks";
 
 const INPUT_CLASS =
   "w-full bg-[#0D0D0D] border border-[#2A2A2A] focus:border-[#F25B29] text-gray-300 placeholder-gray-700 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#F25B29] transition-all";
@@ -21,7 +22,7 @@ const calcStrength = (pw: string): number => {
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
-  const { register } = useAuth();
+  const register = useRegister();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -42,9 +43,14 @@ const Register: React.FC = () => {
     passwordStrength === 2 ? "text-orange-400" :
     passwordStrength === 3 ? "text-yellow-400" : "text-emerald-400";
 
-  const handleRegister = async () => {
-    if (!firstName.trim() || !email.trim()) {
+  const handleRegister = () => {
+    setErrorMessage(null);
+    if (!firstName.trim() || !lastName.trim() || !email.trim()) {
       setErrorMessage("Vul alle verplichte velden in.");
+      return;
+    }
+    if (password.length < 8) {
+      setErrorMessage("Wachtwoord moet minstens 8 tekens zijn.");
       return;
     }
     if (password !== confirmPassword) {
@@ -55,8 +61,18 @@ const Register: React.FC = () => {
       setErrorMessage("Je moet akkoord gaan met de voorwaarden.");
       return;
     }
-    await register({ firstName, lastName, email, password });
-    navigate("/");
+    register.mutate(
+      { firstName, lastName, email, password },
+      {
+        onSuccess: () => navigate("/"),
+        onError: (err) => {
+          const apiError = axios.isAxiosError(err)
+            ? (err.response?.data as { error?: string } | undefined)?.error
+            : null;
+          setErrorMessage(apiError ?? "Registratie mislukt. Probeer het opnieuw.");
+        },
+      },
+    );
   };
 
   const benefits: { icon: string; label: string }[] = [
@@ -91,7 +107,7 @@ const Register: React.FC = () => {
 
           {errorMessage && (
             <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3 mb-5 flex items-center gap-2">
-              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               {errorMessage}
@@ -102,17 +118,17 @@ const Register: React.FC = () => {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={LABEL_CLASS}>Voornaam</label>
-                <input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Jan" className={INPUT_CLASS} />
+                <input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Voornaam" className={INPUT_CLASS} />
               </div>
               <div>
                 <label className={LABEL_CLASS}>Achternaam</label>
-                <input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="de Vries" className={INPUT_CLASS} />
+                <input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Achternaam" className={INPUT_CLASS} />
               </div>
             </div>
 
             <div>
               <label className={LABEL_CLASS}>E-mailadres</label>
-              <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="jij@example.com" className={INPUT_CLASS} />
+              <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="email@example.com" className={INPUT_CLASS} />
             </div>
 
             <div>
@@ -188,9 +204,10 @@ const Register: React.FC = () => {
 
             <button
               onClick={handleRegister}
-              className="w-full cursor-pointer bg-[#F25B29] hover:bg-[#d94e22] text-white font-black py-3.5 rounded-xl text-base transition-all duration-200 hover:shadow-[0_0_20px_rgba(242,91,41,0.3)] active:scale-95 mt-2"
+              disabled={register.isPending}
+              className="w-full cursor-pointer bg-[#F25B29] hover:bg-[#d94e22] disabled:opacity-60 disabled:cursor-not-allowed text-white font-black py-3.5 rounded-xl text-base transition-all duration-200 hover:shadow-[0_0_20px_rgba(242,91,41,0.3)] active:scale-95 mt-2"
             >
-              Account aanmaken
+              {register.isPending ? "Bezig…" : "Account aanmaken"}
             </button>
           </div>
 

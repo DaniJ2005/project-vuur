@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, Navigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { Link } from "react-router-dom";
 import { mockOrders, type Order, type OrderStatus } from "../data/ordersData";
 
 const STATUS_STYLES: Record<OrderStatus, { label: string; cls: string }> = {
@@ -146,7 +145,6 @@ const OrderRow: React.FC<{ order: Order }> = ({ order }) => {
 };
 
 const Orders: React.FC = () => {
-  const { isAuthenticated } = useAuth();
   const [filter, setFilter] = useState<"all" | OrderStatus>("all");
 
   useEffect(() => {
@@ -157,8 +155,6 @@ const Orders: React.FC = () => {
     const sorted = [...mockOrders].sort((a, b) => +new Date(b.date) - +new Date(a.date));
     return filter === "all" ? sorted : sorted.filter((o) => o.status === filter);
   }, [filter]);
-
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
 
   return (
     <div className="pt-16 min-h-screen bg-[#0D0D0D]">

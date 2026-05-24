@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import type { CatalogGame } from "../types/game";
 import { toCatalogGame } from "../types/game";
 import { useCart } from "../context/CartContext";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "@/features/auth/AuthProvider";
 import { useWishlist } from "../context/WishlistContext";
 import StarRating from "./StarRating";
 
