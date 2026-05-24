@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "@/features/auth/AuthProvider";
 import { useAddresses, type Address } from "../context/AddressContext";
 import { cartHasDisc, cartTotal, type CartItem } from "../types/game";
 import OrderSummary from "../components/OrderSummary";
@@ -13,22 +13,22 @@ const LABEL_CLASS =
 
 type PaymentMethod = { id: string; icon: string; name: string; desc: string };
 const PAYMENT_METHODS: PaymentMethod[] = [
-  { id: "ideal",  icon: "🏦", name: "iDEAL",             desc: "Betaal via je bank" },
-  { id: "visa",   icon: "💳", name: "Visa / Mastercard", desc: "Creditcard betaling" },
-  { id: "paypal", icon: "🅿️", name: "PayPal",            desc: "Betaal via je PayPal account" },
-  { id: "crypto", icon: "🪙", name: "Crypto",            desc: "Bitcoin, Ethereum en meer" },
+  { id: "ideal",  icon: "", name: "iDEAL",             desc: "Betaal via je bank" },
+  { id: "visa",   icon: "", name: "Visa / Mastercard", desc: "Creditcard betaling" },
+  { id: "paypal", icon: "", name: "PayPal",            desc: "Betaal via je PayPal account" },
+  { id: "crypto", icon: "", name: "Crypto",            desc: "Bitcoin, Ethereum en meer" },
 ];
 
 type ShippingOption = { id: string; icon: string; name: string; desc: string; price: number };
 const SHIPPING_OPTIONS: ShippingOption[] = [
-  { id: "standard", icon: "📮", name: "Standaard", desc: "2–4 werkdagen",   price: 0 },
-  { id: "express",  icon: "⚡", name: "Express",   desc: "1–2 werkdagen",   price: 4.99 },
-  { id: "same_day", icon: "🚀", name: "Same Day",  desc: "Vandaag bezorgd", price: 9.99 },
+  { id: "standard", icon: "", name: "Standaard", desc: "2-4 werkdagen",   price: 0 },
+  { id: "express",  icon: "", name: "Express",   desc: "1-2 werkdagen",   price: 4.99 },
+  { id: "same_day", icon: "", name: "Same Day",  desc: "Vandaag bezorgd", price: 9.99 },
 ];
 
 const KEY_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
-// Deterministic fake key (mock — replaces backend assignment).
+// Deterministic fake gamekey (mock — replaces backend assignment).
 const generateFakeKey = (seed: number): string => {
   let state = seed * 31337;
   const next = () => {
@@ -66,11 +66,20 @@ const Checkout: React.FC = () => {
   const [step, setStep] = useState<Step>("details");
   const stepIndex = stepOrder.indexOf(step);
 
-  // Personal — pre-fill from logged-in user
+  // Personal — pre-fill from logged-in user once `useMe` resolves.
   const [firstName, setFirstName] = useState(user?.firstName ?? "");
   const [lastName, setLastName] = useState(user?.lastName ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
   const [phone, setPhone] = useState("");
+
+  const hasPrefilled = useRef(false);
+  useEffect(() => {
+    if (!user || hasPrefilled.current) return;
+    setFirstName((prev) => prev || user.firstName);
+    setLastName((prev) => prev || user.lastName);
+    setEmail((prev) => prev || user.email);
+    hasPrefilled.current = true;
+  }, [user]);
 
   // Address
   const [street, setStreet] = useState("");
@@ -203,7 +212,6 @@ const Checkout: React.FC = () => {
             <div className="lg:col-span-2 space-y-4">
               <div className="bg-[#111] border border-[#1E1E1E] rounded-2xl p-6">
                 <div className="flex items-center gap-2 mb-5">
-                  <span className="text-lg">{hasDisc ? "Order" : "Digital Key"}</span>
                   <h2 className="text-white font-black text-lg">
                     {hasDisc ? "Persoonlijke gegevens" : "Digitale levering"}
                   </h2>
@@ -219,15 +227,15 @@ const Checkout: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className={LABEL_CLASS}>Voornaam</label>
-                    <input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Jan" className={INPUT_CLASS} />
+                    <input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="First Name" className={INPUT_CLASS} />
                   </div>
                   <div>
                     <label className={LABEL_CLASS}>Achternaam</label>
-                    <input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="de Vries" className={INPUT_CLASS} />
+                    <input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Last Name" className={INPUT_CLASS} />
                   </div>
                   <div className="col-span-2">
                     <label className={LABEL_CLASS}>E-mailadres</label>
-                    <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="jan@example.com" className={INPUT_CLASS} />
+                    <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="email@example.com" className={INPUT_CLASS} />
                     {hasKey && (
                       <p className="text-gray-600 text-xs mt-1">Je keys worden hier naartoe gestuurd</p>
                     )}
@@ -483,7 +491,7 @@ const Checkout: React.FC = () => {
 
                 <div className="mt-4 bg-[#0D0D0D] border border-[#1E1E1E] rounded-xl p-4">
                   <p className="text-gray-500 text-xs text-center">
-                    🔒 Dit is een mock betaalomgeving. Geen echte betalingen.
+                    Dit is een mock betaalomgeving. Geen echte betalingen.
                   </p>
                 </div>
               </div>
@@ -517,7 +525,7 @@ const Checkout: React.FC = () => {
             </div>
 
             <h1 className="text-3xl font-black text-white mb-2">
-              {hasDisc ? "Bestelling geplaatst! 🎉" : "Betaling geslaagd! 🎉"}
+              {hasDisc ? "Bestelling geplaatst!" : "Betaling geslaagd!"}
             </h1>
 
             {hasDisc ? (
@@ -539,7 +547,7 @@ const Checkout: React.FC = () => {
             {hasDisc && (
               <div className="bg-[#111] border border-[#1E1E1E] rounded-2xl p-6 text-left mb-6">
                 <h3 className="text-white font-bold mb-4 flex items-center gap-2">
-                  <span>📦</span> Verzendgegevens
+                  <span></span> Verzendgegevens
                 </h3>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
@@ -603,7 +611,7 @@ const Checkout: React.FC = () => {
                       <span className="text-lg">{item.game.type === "disc" ? "" : ""}</span>
                       <div className="flex-1">
                         <p className="text-white text-sm font-bold">{item.game.title}</p>
-                        <p className="text-gray-500 text-xs">×{item.quantity}</p>
+                        <p className="text-gray-500 text-xs">x{item.quantity}</p>
                       </div>
                       <span className="text-[#F25B29] font-black text-sm">
                         €{(item.game.price * item.quantity).toFixed(2)}

@@ -1,16 +1,18 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "@/features/auth/AuthProvider";
+import { useLogout } from "@/features/auth/auth.hooks";
 import { useWishlist } from "../context/WishlistContext";
 
 const MENU_ITEMS: { to: string; label: string; icon: string }[] = [
-  { to: "/orders",   label: "Mijn Bestellingen", icon: "📦" },
-  { to: "/wishlist", label: "Wishlist",          icon: "⭐" },
-  { to: "/settings", label: "Instellingen",      icon: "⚙️" },
+  { to: "/orders",   label: "Mijn Bestellingen", icon: "" },
+  { to: "/wishlist", label: "Wishlist",          icon: "" },
+  { to: "/settings", label: "Instellingen",      icon: "" },
 ];
 
 const ProfileDropdown: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
+  const logout = useLogout();
   const { count: wishlistCount } = useWishlist();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -36,7 +38,7 @@ const ProfileDropdown: React.FC = () => {
 
   const handleLogout = () => {
     setOpen(false);
-    logout();
+    logout.mutate();
     navigate("/");
   };
 
@@ -74,9 +76,11 @@ const ProfileDropdown: React.FC = () => {
             <p className="text-gray-500 text-xs truncate">{user.email}</p>
           </div>
 
+          {/* TODO ICONS TOEVOEGEN AAN ELKE MENU ITEM */}
+
           {/* Menu items */}
           <div className="py-1">
-            {MENU_ITEMS.map(({ to, label, icon }) => (
+            {MENU_ITEMS.map(({ to, label }) => (
               <Link
                 key={to}
                 to={to}
@@ -84,7 +88,7 @@ const ProfileDropdown: React.FC = () => {
                 className="flex items-center justify-between gap-3 px-4 py-2.5 text-gray-300 hover:bg-[#F25B29]/10 hover:text-[#F25B29] text-sm transition-all"
               >
                 <span className="flex items-center gap-3">
-                  <span className="text-base">{icon}</span>
+                  {/* <span className="text-base">{icon}</span> */}
                   {label}
                 </span>
                 {to === "/wishlist" && wishlistCount > 0 && (
@@ -102,7 +106,8 @@ const ProfileDropdown: React.FC = () => {
               onClick={handleLogout}
               className="w-full flex items-center gap-3 px-4 py-2.5 text-red-400 hover:bg-red-500/10 text-sm transition-all cursor-pointer"
             >
-              <span className="text-base">↩</span>
+              {/* TODO "Return" icon toevoegen */}
+              {/* <span className="text-base">HIER RETURN ICON TOEVOEGEN</span> */}
               Uitloggen
             </button>
           </div>

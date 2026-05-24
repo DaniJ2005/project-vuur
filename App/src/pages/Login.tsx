@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import axios from "axios";
+import { useLogin } from "@/features/auth/auth.hooks";
 
 const INPUT_CLASS =
   "w-full bg-[#0D0D0D] border border-[#2A2A2A] focus:border-[#F25B29] text-gray-300 placeholder-gray-700 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#F25B29] transition-all";
@@ -9,24 +10,39 @@ const LABEL_CLASS =
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const location = useLocation();
+  const login = useLogin();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const redirectTo =
+    (location.state as { from?: { pathname: string } } | null)?.from?.pathname ?? "/";
+
   useEffect(() => {
     document.title = "Inloggen – VUUR";
   }, []);
 
-  const handleLogin = async () => {
+  const handleLogin = () => {
+    setErrorMessage(null);
     if (!email.trim() || !password.trim()) {
       setErrorMessage("Vul je e-mailadres en wachtwoord in.");
       return;
     }
-    await login(email, password);
-    navigate("/");
+    login.mutate(
+      { email, password },
+      {
+        onSuccess: () => navigate(redirectTo, { replace: true }),
+        onError: (err) => {
+          const apiError = axios.isAxiosError(err)
+            ? (err.response?.data as { error?: string } | undefined)?.error
+            : null;
+          setErrorMessage(apiError ?? "Inloggen mislukt. Controleer je gegevens.");
+        },
+      },
+    );
   };
 
   return (
@@ -56,7 +72,7 @@ const Login: React.FC = () => {
 
           {errorMessage && (
             <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3 mb-5 flex items-center gap-2">
-              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               {errorMessage}
@@ -121,9 +137,10 @@ const Login: React.FC = () => {
 
             <button
               onClick={handleLogin}
-              className="w-full cursor-pointer bg-[#F25B29] hover:bg-[#d94e22] text-white font-black py-3.5 rounded-xl text-base transition-all duration-200 hover:shadow-[0_0_20px_rgba(242,91,41,0.3)] active:scale-95 mt-2"
+              disabled={login.isPending}
+              className="w-full cursor-pointer bg-[#F25B29] hover:bg-[#d94e22] disabled:opacity-60 disabled:cursor-not-allowed text-white font-black py-3.5 rounded-xl text-base transition-all duration-200 hover:shadow-[0_0_20px_rgba(242,91,41,0.3)] active:scale-95 mt-2"
             >
-              Inloggen
+              {login.isPending ? "Bezig…" : "Inloggen"}
             </button>
           </div>
 

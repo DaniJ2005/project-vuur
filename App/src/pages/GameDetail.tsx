@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { allGames } from "../data/catalogData";
 import { toCatalogGame } from "../types/game";
 import { useCart } from "../context/CartContext";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "@/features/auth/AuthProvider";
 import { useWishlist } from "../context/WishlistContext";
 import GameCard from "../components/GameCard";
 
@@ -156,7 +156,6 @@ const GameDetail: React.FC = () => {
             {/* Type uitleg banner */}
             {game.type === "key" ? (
               <div className="flex items-start gap-3 bg-blue-500/5 border border-blue-500/20 rounded-xl p-4">
-                <span className="text-2xl flex-shrink-0">Key</span>
                 <div>
                   <p className="text-blue-400 font-bold text-sm">Digitale Game Key</p>
                   <p className="text-blue-400/70 text-xs mt-0.5 leading-relaxed">
@@ -167,12 +166,11 @@ const GameDetail: React.FC = () => {
               </div>
             ) : (
               <div className="flex items-start gap-3 bg-amber-500/5 border border-amber-500/20 rounded-xl p-4">
-                <span className="text-2xl flex-shrink-0">Disc</span>
                 <div>
                   <p className="text-amber-400 font-bold text-sm">Fysieke Disc</p>
                   <p className="text-amber-400/70 text-xs mt-0.5 leading-relaxed">
                     Dit is een fysiek product dat per post wordt verzonden. Tijdens het afrekenen vragen we om
-                    een bezorgadres. Verwachte levertijd: 2–4 werkdagen.
+                    een bezorgadres. Verwachte levertijd: 2-4 werkdagen.
                   </p>
                 </div>
               </div>
@@ -243,7 +241,7 @@ const GameDetail: React.FC = () => {
                 ["Regio", "Global"],
               ].map(([label, value]) => (
                 <div key={label} className="flex px-5 py-3 border-b border-[#1A1A1A] last:border-0">
-                  <span className="text-gray-500 text-sm w-32 flex-shrink-0">{label}</span>
+                  <span className="text-gray-500 text-sm w-32 shrink-0">{label}</span>
                   <span className="text-gray-300 text-sm">{value}</span>
                 </div>
               ))}

@@ -9,18 +9,32 @@ namespace Vuur.Api.Data;
 /// </summary>
 public class PostgresContext
 {
-    private readonly string _connectionString;
+    private readonly string host;
+    private readonly string port;
+    private readonly string db;
+    private readonly string user;
+    private readonly string pass;
 
-    public PostgresContext(IConfiguration configuration)
+    public PostgresContext(IConfiguration config)
     {
-        _connectionString = configuration["POSTGRES_CONNECTION_STRING"]
-            ?? throw new InvalidOperationException("POSTGRES_CONNECTION_STRING is not configured.");
+        host = config["POSTGRES_HOST"] ?? "localhost";
+        port = config["POSTGRES_PORT"] ?? "5433";
+        db = config["POSTGRES_DB"] ?? throw new InvalidOperationException("POSTGRES_DB is not configured.");
+        user = config["POSTGRES_USER"] ?? throw new InvalidOperationException("POSTGRES_USER is not configured.");
+        pass = config["POSTGRES_PASSWORD"] ?? throw new InvalidOperationException("POSTGRES_PASSWORD is not configured.");
     }
 
     public IDbConnection CreateConnection()
     {
-        var conn = new NpgsqlConnection(_connectionString);
+        string connectionString = $"Host={host};Port={port};Database={db};Username={user};Password={pass}";
+        var conn = new NpgsqlConnection(connectionString);
         conn.Open();
         return conn;
+    }
+
+    public void RunMigrations()
+    {
+        string connectionString = $"Host={host};Port={port};Database={db};Username={user};Password={pass}";
+        MigrationRunner.Run(connectionString);
     }
 }
