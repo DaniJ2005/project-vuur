@@ -10,7 +10,7 @@ function Home() {
   const featuredGames = allGames.filter((g) => g.isFeatured);
   const newReleases = allGames.filter((g) => g.isNew);
 
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
   
 
   return (
