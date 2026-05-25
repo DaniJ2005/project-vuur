@@ -8,10 +8,10 @@ using Vuur.Api.Features.Users;
 namespace Vuur.Api.Features.Auth;
 
 [ApiController]
-[Route("/auth")]
+[Route("/api/auth")]
 public class AuthController(AuthService authService, UserReadRepository userReadRepo) : ControllerBase
 {
-    // POST /auth/register
+    // POST /api/auth/register
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest req)
     {
@@ -20,7 +20,7 @@ public class AuthController(AuthService authService, UserReadRepository userRead
         return Ok(response);
     }
 
-    // POST /auth/login
+    // POST /api/auth/login
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest req)
     {
@@ -29,7 +29,7 @@ public class AuthController(AuthService authService, UserReadRepository userRead
         return Ok(response);
     }
 
-    // POST /auth/refresh
+    // POST /api/auth/refresh
     [HttpPost("refresh")]
     public async Task<IActionResult> Refresh([FromBody] RefreshRequest req)
     {
@@ -38,7 +38,7 @@ public class AuthController(AuthService authService, UserReadRepository userRead
         return Ok(response);
     }
 
-    // POST /auth/logout
+    // POST /api/auth/logout
     [HttpPost("logout")]
     public async Task<IActionResult> Logout([FromBody] RefreshRequest req)
     {
@@ -46,7 +46,7 @@ public class AuthController(AuthService authService, UserReadRepository userRead
         return NoContent();
     }
 
-    // GET /auth/me  — requires a valid JWT
+    // GET /api/auth/me  — requires a valid JWT
     [HttpGet("me")]
     [Authorize]
     public async Task<IActionResult> Me()
