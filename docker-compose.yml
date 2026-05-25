@@ -41,18 +41,23 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
       # CORS voor de frontend
-      Cors__FrontendOrigin: ${CORS_FRONTEND_ORIGIN}
-      # Connection strings worden hier opgebouwd uit losse variabelen,
-      # zodat we credentials maar op 1 plek hoeven te beheren (.env).
-      POSTGRES_CONNECTION_STRING: "Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+      # Cors__FrontendOrigin: ${CORS_FRONTEND_ORIGIN}
+
+      # Postgres connectie-variabelen.
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
       MONGO_CONNECTION_STRING: "mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/vuur_db?authSource=admin"
       REDIS_CONNECTION_STRING: "redis:6379,password=${REDIS_PASSWORD}"
       # ASP.NET maps __ in env-namen naar : in IConfiguration keys.
       # Jwt__Secret hier = configuration["Jwt:Secret"] in C#.
       Jwt__Secret: ${JWT_SECRET}
-      Jwt__Issuer: ${JWT_ISSUER:-vuur-api}
-      Jwt__AccessTokenMinutes: ${JWT_ACCESS_TOKEN_MINUTES:-15}
-      Jwt__RefreshTokenDays: ${JWT_REFRESH_TOKEN_DAYS:-7}
+      Jwt__Issuer: ${JWT_ISSUER}
+      Jwt__AccessTokenMinutes: ${JWT_ACCESS_TOKEN_MINUTES}
+      Jwt__RefreshTokenDays: ${JWT_REFRESH_TOKEN_DAYS}
     depends_on:
       postgres:
         condition: service_healthy

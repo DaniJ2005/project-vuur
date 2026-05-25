@@ -4,16 +4,17 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using Vuur.Api.Features.Users;
+using Vuur.Api.Config;
 
 namespace Vuur.Api.Features.Auth;
 
-public class TokenService(IConfiguration config)
+public class TokenService(EnvironmentVariables env)
 {
     // Pull from config; fail fast if missing
-    private string JwtSecret => config["JWT_SECRET"] ?? throw new InvalidOperationException("JWT_SECRET not configured.");
-    private string JwtIssuer => config["JWT_ISSUER"] ?? throw new InvalidOperationException("JWT_ISSUER not configured.");
-    private int AccessTokenMin => int.Parse(config["JWT_ACCESS_TOKEN_MINUTES"] ?? "15");
-    private int RefreshTokenDay => int.Parse(config["JWT_REFRESH_TOKEN_DAYS"] ?? "7");
+    private string JwtSecret => env.JwtSecret;
+    private string JwtIssuer => env.JwtIssuer;
+    private int AccessTokenMin => int.Parse(env.JwtAccessTokenMinutes.ToString());
+    private int RefreshTokenDay => int.Parse(env.JwtRefreshTokenDays.ToString());
 
 
     public (string token, DateTime expiresAt) GenerateAccessToken(User user)

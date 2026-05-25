@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using Vuur.Api.Data;
+using Vuur.Api.Config;
 using Vuur.Api.Features.Auth;
 using Vuur.Api.Features.Orders;
 using Vuur.Api.Features.Users;
@@ -23,6 +23,9 @@ JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 // Make Dapper map snake_case columns to PascalCase properties automatically
 Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
 
+// Custom Enviroment Variables class
+var env = new EnvironmentVariables(builder.Configuration);
+builder.Services.AddSingleton(env);
 
 // PostgreSQL
 builder.Services.AddSingleton<PostgresContext>();
@@ -60,8 +63,8 @@ builder.Services.AddScoped<PaymentRepository>();
 builder.Services.AddScoped<PaymentReadRepository>();
 builder.Services.AddScoped<PaymentService>();
 
-var jwtSecret = builder.Configuration["JWT_SECRET"] ?? throw new InvalidOperationException("JWT_SECRET not configured.");
-var jwtIssuer = builder.Configuration["JWT_ISSUER"] ?? throw new InvalidOperationException("JWT_ISSUER not configured.");
+var jwtSecret = env.JwtSecret;
+var jwtIssuer = env.JwtIssuer;
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -117,19 +120,23 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-var frontendOrigin = builder.Configuration["Cors:FrontendOrigin"]
-    ?? throw new InvalidOperationException("Cors:FrontendOrigin not configured.");
-
-builder.Services.AddCors(options =>
+// CORS is alleen nodig als frontend en api op verschillende origins draaien
+// (lokale dev: Vite op :5173, API op :5245). In productie loopt alles via
+// dezelfde nginx reverse proxy → same-origin → geen CORS nodig. We registreren
+// de policy dus alleen als CORS_FRONTEND_ORIGIN is gezet in de .env.
+if (env.CorsFrontendOrigin is not null)
 {
-    options.AddPolicy("Frontend", policy =>
+    builder.Services.AddCors(options =>
     {
-        policy.WithOrigins(frontendOrigin)
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+        options.AddPolicy("Frontend", policy =>
+        {
+            policy.WithOrigins(env.CorsFrontendOrigin)
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials();
+        });
     });
-});
+}
 
 var app = builder.Build();
 
@@ -147,7 +154,11 @@ if (app.Environment.IsDevelopment())
 
 
 // app.UseHttpsRedirection();
-app.UseCors("Frontend");
+// Alleen UseCors aanroepen als we de policy ook daadwerkelijk hebben geregistreerd.
+if (env.CorsFrontendOrigin is not null)
+{
+    app.UseCors("Frontend");
+}
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
