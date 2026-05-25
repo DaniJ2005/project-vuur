@@ -31,7 +31,7 @@ async function refreshTokens(): Promise<string | null> {
   try {
     const { data } = await refreshClient.post<{
       accessToken: string; refreshToken: string; accessTokenExpiresAt: string;
-    }>('/auth/refresh', { refreshToken });
+    }>('/api/auth/refresh', { refreshToken });
 
     tokenStorage.set(data.accessToken, data.refreshToken);
     return data.accessToken;
