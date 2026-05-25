@@ -1,5 +1,6 @@
 using Npgsql;
 using System.Data;
+using Vuur.Api.Config;
 
 namespace Vuur.Api.Data;
 
@@ -15,13 +16,13 @@ public class PostgresContext
     private readonly string user;
     private readonly string pass;
 
-    public PostgresContext(IConfiguration config)
+    public PostgresContext(EnvironmentVariables env)
     {
-        host = config["POSTGRES_HOST"] ?? "localhost";
-        port = config["POSTGRES_PORT"] ?? "5433";
-        db = config["POSTGRES_DB"] ?? throw new InvalidOperationException("POSTGRES_DB is not configured.");
-        user = config["POSTGRES_USER"] ?? throw new InvalidOperationException("POSTGRES_USER is not configured.");
-        pass = config["POSTGRES_PASSWORD"] ?? throw new InvalidOperationException("POSTGRES_PASSWORD is not configured.");
+        host = env.PostgresHost ?? "postgres";
+        port = env.PostgresPort ?? "5432";
+        db = env.PostgresDb;
+        user = env.PostgresUser;
+        pass = env.PostgresPassword;
     }
 
     public IDbConnection CreateConnection()
