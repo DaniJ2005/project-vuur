@@ -1,4 +1,5 @@
 using StackExchange.Redis;
+using Vuur.Api.Config;
 
 namespace Vuur.Api.Data;
 
@@ -6,11 +7,13 @@ public class RedisContext
 {
     private readonly IConnectionMultiplexer _connection;
 
-    public RedisContext(IConfiguration configuration)
+    public RedisContext(EnvironmentVariables env)
     {
-        var connectionString = configuration["REDIS_CONNECTION_STRING"]
-            ?? throw new InvalidOperationException("REDIS_CONNECTION_STRING is not configured.");
-
+        // Redis draait onder de docker service-naam 'redis' op de standaard port.
+        // Voor lokale dev exposed docker-compose.override.yml dezelfde port op
+        // de host, dus deze connection string werkt in beide omgevingen identiek
+        // zolang je via docker compose draait.
+        var connectionString = $"redis:6379,password={env.RedisPassword}";
         _connection = ConnectionMultiplexer.Connect(connectionString);
     }
 

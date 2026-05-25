@@ -40,24 +40,34 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
-      # CORS voor de frontend
-      # Cors__FrontendOrigin: ${CORS_FRONTEND_ORIGIN}
 
-      # Postgres connectie-variabelen.
+      # Alle env vars worden onder dezelfde flat namen doorgegeven als in .env,
+      # zodat EnvironmentVariables.cs ze 1-op-1 kan inlezen (zowel in productie
+      # via docker compose als lokaal via DotNetEnv).
+
+      # Postgres
       POSTGRES_HOST: ${POSTGRES_HOST}
       POSTGRES_PORT: ${POSTGRES_PORT}
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
 
-      MONGO_CONNECTION_STRING: "mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/vuur_db?authSource=admin"
-      REDIS_CONNECTION_STRING: "redis:6379,password=${REDIS_PASSWORD}"
-      # ASP.NET maps __ in env-namen naar : in IConfiguration keys.
-      # Jwt__Secret hier = configuration["Jwt:Secret"] in C#.
-      Jwt__Secret: ${JWT_SECRET}
-      Jwt__Issuer: ${JWT_ISSUER}
-      Jwt__AccessTokenMinutes: ${JWT_ACCESS_TOKEN_MINUTES}
-      Jwt__RefreshTokenDays: ${JWT_REFRESH_TOKEN_DAYS}
+      # Mongo — MongoContext bouwt zelf de connection string uit deze credentials.
+      MONGO_USER: ${MONGO_USER}
+      MONGO_PASSWORD: ${MONGO_PASSWORD}
+
+      # Redis — RedisContext bouwt zelf de connection string uit dit wachtwoord.
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+
+      # JWT
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ISSUER: ${JWT_ISSUER}
+      JWT_ACCESS_TOKEN_MINUTES: ${JWT_ACCESS_TOKEN_MINUTES}
+      JWT_REFRESH_TOKEN_DAYS: ${JWT_REFRESH_TOKEN_DAYS}
+
+      # CORS (optioneel — alleen nodig in dev wanneer frontend en api op
+      # verschillende origins draaien; in productie loopt alles via nginx).
+      # CORS_FRONTEND_ORIGIN: ${CORS_FRONTEND_ORIGIN}
     depends_on:
       postgres:
         condition: service_healthy

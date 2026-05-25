@@ -1,4 +1,5 @@
 using MongoDB.Driver;
+using Vuur.Api.Config;
 
 namespace Vuur.Api.Data;
 
@@ -6,10 +7,14 @@ public class MongoContext
 {
     private readonly IMongoDatabase _database;
 
-    public MongoContext(IConfiguration configuration)
+    public MongoContext(EnvironmentVariables env)
     {
-        var connectionString = configuration["MONGO_CONNECTION_STRING"]
-            ?? throw new InvalidOperationException("MONGO_CONNECTION_STRING is not configured.");
+        // Mongo draait onder de docker service-naam 'mongo' op de standaard port.
+        // Voor lokale dev exposed docker-compose.override.yml dezelfde port op
+        // de host, dus de connection string werkt in beide omgevingen identiek
+        // zolang je via docker compose draait.
+        var connectionString =
+            $"mongodb://{env.MongoUser}:{env.MongoPassword}@mongo:27017/vuur_db?authSource=admin";
 
         var mongoUrl = new MongoUrl(connectionString);
         var client = new MongoClient(mongoUrl);
