@@ -8,7 +8,7 @@ namespace Vuur.Api.Features.Users;
 /// Manage delivery addresses for the authenticated user.
 /// </summary>
 [ApiController]
-[Route("/addresses")]
+[Route("/api/addresses")]
 [Authorize]
 [Produces("application/json")]
 public class AddressController(AddressService service) : ControllerBase
