@@ -8,7 +8,7 @@ namespace Vuur.Api.Features.Orders;
 /// Create and retrieve payments linked to orders.
 /// </summary>
 [ApiController]
-[Route("/payments")]
+[Route("/api/payments")]
 [Authorize]
 [Produces("application/json")]
 public class PaymentController(PaymentService service) : ControllerBase
