@@ -40,6 +40,8 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
+      # CORS voor de frontend
+      Cors__FrontendOrigin: ${CORS_FRONTEND_ORIGIN}
       # Connection strings worden hier opgebouwd uit losse variabelen,
       # zodat we credentials maar op 1 plek hoeven te beheren (.env).
       POSTGRES_CONNECTION_STRING: "Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
