@@ -10,7 +10,7 @@ namespace Vuur.Api.Features.Auth;
 
 [ApiController]
 [Route("/api/auth")]
-public class AuthController(AuthService authService, UserReadRepository userReadRepo, RedisContext redis) : ControllerBase
+public class AuthController(AuthService authService, UserReadRepository userReadRepo) : ControllerBase
 {
     // POST /api/auth/register
     [HttpPost("register")]

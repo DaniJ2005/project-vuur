@@ -1,4 +1,5 @@
 using StackExchange.Redis;
+using Vuur.Api.Config;
 namespace Vuur.Api.Data;
 
 public class RedisContext
@@ -10,12 +11,12 @@ public class RedisContext
 
     private static string RefreshTokenKey(string token) => $"refresh_token:{token}";
 
-    public RedisContext(IConfiguration configuration, IWebHostEnvironment env)
+    public RedisContext(EnvironmentVariables env, IWebHostEnvironment webHostEnv)
     {
-        var password = configuration["REDIS_PASSWORD"]
+        var password = env.RedisPassword
             ?? throw new InvalidOperationException("REDIS_PASSWORD is not configured.");
 
-        var host = env.IsDevelopment() ? "localhost" : "vuur_redis";
+        var host = webHostEnv.IsDevelopment() ? "localhost" : "vuur_redis";
 
         var options = new ConfigurationOptions
         {
