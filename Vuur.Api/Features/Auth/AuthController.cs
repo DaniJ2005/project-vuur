@@ -3,13 +3,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using Vuur.Api.Data;
 using Vuur.Api.Features.Users;
 
 namespace Vuur.Api.Features.Auth;
 
 [ApiController]
 [Route("/api/auth")]
-public class AuthController(AuthService authService, UserReadRepository userReadRepo) : ControllerBase
+public class AuthController(AuthService authService, UserReadRepository userReadRepo, RedisContext redis) : ControllerBase
 {
     // POST /api/auth/register
     [HttpPost("register")]
