@@ -17,22 +17,23 @@ public class MongoContext
         // de host, dus de connection string werkt in beide omgevingen identiek
         // zolang je via docker compose draait.
         var connectionString =
-            $"mongodb://{env.MongoUser}:{env.MongoPassword}@mongo:27017/vuur_db?authSource=admin";
-
+            $"mongodb://{env.MongoUser}:{env.MongoPassword}@{env.MongoHost}:{env.MongoPort}/vuur_mongo?authSource=admin";
+            // 
+            // ?authSource=admin
         var mongoUrl = new MongoUrl(connectionString);
         var client = new MongoClient(mongoUrl);
-        _database = client.GetDatabase(mongoUrl.DatabaseName ?? "vuur_db");
+        _database = client.GetDatabase(mongoUrl.DatabaseName ?? "vuur_mongo");
     }
 
     public IMongoCollection<T> GetCollection<T>(string name)
         => _database.GetCollection<T>(name);
     
-    public IMongoCollection<ProductDocument> Products
-        => GetCollection<ProductDocument>("products");
+    public IMongoCollection<Product> Products
+        => GetCollection<Product>("products");
 
 
 
     // Typed accessors — add one per collection as you build features
-    // public IMongoCollection<ProductDocument> Products
-    //     => GetCollection<ProductDocument>("products");
+    // public IMongoCollection<Product> Products
+    //     => GetCollection<Product>("products");
 }

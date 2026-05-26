@@ -3,38 +3,39 @@ using Vuur.Api.Data;
 
 namespace Vuur.Api.Features.Products;
 
-public class ProductRepository
+public class ProductRepository : IRepository<Product>
 {
-    private readonly IMongoCollection<ProductDocument> _collection;
+    private readonly IMongoCollection<Product> _collection;
 
     public ProductRepository(MongoContext context)
     {
         _collection = context.Products;
     }
 
-    public Task<List<ProductDocument>> GetAllAsync()
+    public Task<List<Product>> GetAllAsync()
     {
         return _collection.Find(_ => true).ToListAsync();
     }
 
-    public Task<ProductDocument?> GetByIdAsync(string id)
+    public async Task<Product?> GetByIdAsync(string id)
     {
-        return _collection
-            .Find(x => x.Id == id)
+        return await _collection
+            .Find(Builders<Product>.Filter.Eq(x => x.Id, id))
             .FirstOrDefaultAsync();
     }
 
-    public Task CreateAsync(ProductDocument product)
+    public Task CreateAsync(Product product)
     {
         return _collection.InsertOneAsync(product);
     }
 
-    public async Task UpdateAsync(ProductDocument product)
+    public async Task<bool> UpdateAsync(Product product)
     {
-        await _collection.ReplaceOneAsync(
+        var result = await _collection.ReplaceOneAsync(
             x => x.Id == product.Id,
             product
         );
+        return result.ModifiedCount > 0;
     }
 
     public async Task<bool> DeleteAsync(string id)

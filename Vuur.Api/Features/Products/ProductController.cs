@@ -44,7 +44,9 @@ public class ProductController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(string id, [FromBody] UpdateProductRequest request)
+    public async Task<IActionResult> Update(
+        string id,
+        [FromBody] UpdateProductRequest request)
     {
         var updated = await _service.UpdateAsync(id, request);
 

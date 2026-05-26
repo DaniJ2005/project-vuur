@@ -1,18 +1,24 @@
+using AutoMapper;
+
 namespace Vuur.Api.Features.Products;
 
 public class ProductService
 {
-    private readonly ProductRepository _repo;
+    private readonly IRepository<Product> _repo;
+    private readonly IMapper _mapper;
 
-    public ProductService(ProductRepository repo)
+    public ProductService(
+        IRepository<Product> repo,
+        IMapper mapper)
     {
         _repo = repo;
+        _mapper = mapper;
     }
 
     // Existing functionality preserved (slightly adapted return type)
-    public async Task<ProductDocument> CreateProduct(string name)
+    public async Task<Product> CreateProduct(string name)
     {
-        var product = new ProductDocument
+        var product = new Product
         {
             ProductName = name,
             CreatedAt = DateTime.UtcNow,
@@ -23,36 +29,48 @@ public class ProductService
         return product;
     }
 
-    // Controller-compatible create (preferred)
-    public Task<ProductDocument> CreateAsync(CreateProductRequest request)
+    public async Task<Product> CreateAsync(CreateProductRequest request)
     {
-        return CreateProduct(request.ProductName);
+        var product = _mapper.Map<Product>(request);
+
+        product.CreatedAt = DateTime.UtcNow;
+        product.UpdatedAt = DateTime.UtcNow;
+
+        await _repo.CreateAsync(product);
+
+        return product;
     }
 
-    public Task<List<ProductDocument>> GetAllAsync()
+    public Task<List<Product>> GetAllAsync()
     {
         return _repo.GetAllAsync();
     }
 
-    public Task<ProductDocument?> GetByIdAsync(string id)
+    public Task<Product?> GetByIdAsync(string id)
     {
         return _repo.GetByIdAsync(id);
     }
 
-    public async Task<bool> UpdateAsync(string id, UpdateProductRequest request)
+    public async Task<bool> UpdateAsync(
+        string id,
+        UpdateProductRequest request)
     {
-        var existing = await _repo.GetByIdAsync(id);
+        var existingProduct =
+            await _repo.GetByIdAsync(id);
 
-        if (existing is null)
+        if (existingProduct is null)
+        {
             return false;
+        }
 
-        existing.ProductName = request.ProductName;
-        existing.UpdatedAt = DateTime.UtcNow;
+        _mapper.Map(request, existingProduct);
 
-        await _repo.UpdateAsync(existing);
+        existingProduct.UpdatedAt = DateTime.UtcNow;
 
-        return true;
+        return await _repo.UpdateAsync(existingProduct);
     }
+
+    
 
     public Task<bool> DeleteAsync(string id)
     {

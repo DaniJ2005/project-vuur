@@ -1,174 +1,213 @@
-﻿using Microsoft.Extensions.Configuration;
-using DotNetEnv;
-using MongoDB.Driver;
-using Vuur.Api.Data;
+﻿using Moq;
+using Vuur.Api.Features;
 using Vuur.Api.Features.Products;
 using Xunit;
+using AutoMapper;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Vuur.Tests;
 
-public class MongoTest
+public class ProductServiceTests
 {
-    private readonly MongoContext _context;
+    // private readonly Mock<ProductRepository> _repoMock;
+    // private readonly Mock<IMapper> _mapperMock;
+    // private readonly ProductService _service;
+    // public ProductServiceTests()
+    // {
+    //     _repoMock = new Mock<ProductRepository>();
+    //     _mapperMock = new Mock<IMapper>();
 
-    public MongoTest()
+    //     _service = new ProductService(_repoMock.Object, _mapperMock.Object);
+    // }
+
+    private readonly Mock<IRepository<Product>> _repoMock;
+    private readonly IMapper _mapper;
+    private readonly ProductService _service;
+
+    public ProductServiceTests()
     {
-        // Solution based path because it wouldn't work with a relative path from the test project
-        var baseDir = AppContext.BaseDirectory;
-        var envPath = Path.GetFullPath(Path.Combine(baseDir, "../../../../Vuur.Api/.env"));
-
-        if (File.Exists(envPath))
-        {
-            Env.Load(envPath);
-        }
-
-        var configuration = new ConfigurationBuilder()
-            .AddEnvironmentVariables()
-            .Build();
-
-        // Switch connection string because we need to use the test database for tests
-        var connectionString =
-            configuration["MONGO_TEST_CONNECTION_STRING"]
-            ?? configuration["MONGO_CONNECTION_STRING"]
-            ?? throw new InvalidOperationException("No Mongo connection string configured.");
-
-        var testConfig = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
+        _repoMock = new Mock<IRepository<Product>>();
+        var config = new MapperConfiguration(
+            cfg =>
             {
-                ["MONGO_CONNECTION_STRING"] = connectionString
-            })
-            .Build();
+                cfg.CreateMap<CreateProductRequest, Product>();
+                cfg.CreateMap<UpdateProductRequest, Product>()
+                    .ForAllMembers(opts =>
+                        opts.Condition((src, dest, srcMember) => srcMember != null));
+            },
+            NullLoggerFactory.Instance
+        );
 
-        _context = new MongoContext(testConfig);
+        _mapper = config.CreateMapper();
+        _service = new ProductService(_repoMock.Object, _mapper);
     }
 
-    
-    [Fact] // Does mongo work?
-    public async Task CanInsertAndRetrieveProduct()
+    [Fact] // Creates product and returns mapped result
+    public async Task CreateProduct_ShouldReturnCreatedProduct()
     {
-        await _context.Products.DeleteManyAsync(_ => true);
+        var request = new CreateProductRequest(
+            "Test Product",
+            "Desc",
+            "PC",
+            "Action",
+            "Game",
+            50,
+            100,
+            50,
+            4.5m,
+            true,
+            false
+        );
 
-        var product = new ProductDocument
+        _repoMock
+            .Setup(r => r.CreateAsync(It.IsAny<Product>()))
+            .Returns(Task.CompletedTask);
+
+        var result = await _service.CreateAsync(request);
+
+        Assert.Equal("Test Product", result.ProductName);
+        Assert.Equal(50, result.Price);
+        Assert.Equal(true, result.IsNew);
+    }
+
+    [Fact] // Updates all fields including numbers and booleans
+    public async Task UpdateProduct_ShouldUpdateAllDataTypes()
+    {
+        var existing = new Product
         {
-            ProductName = "Test Product",
+            Id = "1",
+            ProductName = "Old",
+            ProductDescription = "Old",
+            Platform = "PC",
+            Genre = "Old",
+            Type = "Old",
+            Price = 10,
+            OriginalPrice = 20,
+            DiscountPercent = 0,
+            Rating = 1,
+            IsNew = false,
+            IsFeatured = false,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
 
-        await _context.Products.InsertOneAsync(product);
+        _repoMock
+            .Setup(r => r.GetByIdAsync("1"))
+            .ReturnsAsync(existing);
 
-        var result = await _context.Products
-            .Find(x => x.ProductName == "Test Product")
-            .FirstOrDefaultAsync();
+        _repoMock
+            .Setup(r => r.UpdateAsync(It.IsAny<Product>()))
+            .ReturnsAsync(true);
 
-        Assert.NotNull(result);
-        Assert.Equal("Test Product", result.ProductName);
-    }
-
-    [Fact] // Does the service work?
-    public async Task ServiceCreatesProduct()
-    {
-        var service = new ProductService(new ProductRepository(_context));
-
-        await service.CreateProduct("Service Test");
-
-        var result = await _context.Products.Find(_ => true).ToListAsync();
-
-        Assert.Contains(result, x => x.ProductName == "Service Test");
-    }
-
-    [Fact] // Does service update work?
-    public async Task ServiceUpdatesProduct()
-    {
-        await _context.Products.DeleteManyAsync(_ => true);
-
-        var service = new ProductService(new ProductRepository(_context));
-
-        // create initial product
-        await service.CreateProduct("Original Name");
-
-        var product = await _context.Products
-            .Find(x => x.ProductName == "Original Name")
-            .FirstOrDefaultAsync();
-
-        Assert.NotNull(product);
-
-        // update via repository (service currently exposes update via DTO method)
-        var updated = await service.UpdateAsync(product.Id, 
-            new UpdateProductRequest("Updated Name")
+        var request = new UpdateProductRequest(
+            ProductName: "New Name",
+            ProductDescription: "New Desc",
+            Platform: "Console",
+            Genre: "Shooter",
+            Type: "Game",
+            Price: 99.99m,
+            OriginalPrice: 120m,
+            DiscountPercent: 15m,
+            Rating: 4.9m,
+            IsNew: true,
+            IsFeatured: true
         );
 
-        Assert.True(updated);
+        var result = await _service.UpdateAsync("1", request);
 
-        var result = await _context.Products
-            .Find(x => x.Id == product.Id)
-            .FirstOrDefaultAsync();
+        Assert.True(result);
+        Assert.Equal("New Name", existing.ProductName);
+        Assert.Equal(99.99m, existing.Price);
+        Assert.True(existing.IsFeatured);
+    }
+
+    [Fact] // Updates only provided fields, keeps existing values
+    public async Task UpdateProduct_ShouldSupportPartialUpdates()
+    {
+        var existing = new Product
+        {
+            Id = "1",
+            ProductName = "Old",
+            Price = 9,
+            IsNew = false,
+            IsFeatured = false,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        _repoMock.Setup(r => r.GetByIdAsync("1"))
+            .ReturnsAsync(existing);
+
+        _repoMock.Setup(r => r.UpdateAsync(It.IsAny<Product>()))
+            .ReturnsAsync(true);
+
+        var request = new UpdateProductRequest(
+            ProductName: "Updated Only",
+            ProductDescription: null,
+            Platform: null,
+            Genre: null,
+            Type: null,
+            Price: 10,
+            OriginalPrice: null,
+            DiscountPercent: null,
+            Rating: null,
+            IsNew: null,
+            IsFeatured: null
+        );
+
+        var result = await _service.UpdateAsync("1", request);
+
+        Assert.True(result);
+        Assert.Equal("Updated Only", existing.ProductName);
+        Assert.Equal(10, existing.Price);
+        Assert.False(existing.IsFeatured);
+    }
+
+    [Fact] // Deletes product and returns success status
+    public async Task DeleteProduct_ShouldReturnTrue()
+    {
+        _repoMock.Setup(r => r.DeleteAsync("1"))
+            .ReturnsAsync(true);
+
+        var result = await _service.DeleteAsync("1");
+
+        Assert.True(result);
+    }
+
+    [Fact] // Retrieves product by id successfully
+    public async Task GetById_ShouldReturnProduct()
+    {
+        var product = new Product { Id = "1", ProductName = "Test" };
+
+        _repoMock.Setup(r => r.GetByIdAsync("1"))
+            .ReturnsAsync(product);
+
+        var result = await _service.GetByIdAsync("1");
 
         Assert.NotNull(result);
-        Assert.Equal("Updated Name", result.ProductName);
+        Assert.Equal("Test", result!.ProductName);
     }
 
-    [Fact] // Does service delete work?
-    public async Task ServiceDeletesProduct()
+    [Fact] // Allows creation of new product instances
+    public async Task AddNewProduct_ShouldAllowNewInstances()
     {
-        await _context.Products.DeleteManyAsync(_ => true);
+        var request = new CreateProductRequest(
+            "New Game",
+            null,
+            "PC",
+            "RPG",
+            "Game",
+            60,
+            70,
+            10,
+            4.2m,
+            true,
+            true
+        );
 
-        var service = new ProductService(new ProductRepository(_context));
-
-        await service.CreateProduct("To Be Deleted");
-
-        var product = await _context.Products
-            .Find(x => x.ProductName == "To Be Deleted")
-            .FirstOrDefaultAsync();
-
-        Assert.NotNull(product);
-
-        var deleted = await service.DeleteAsync(product.Id);
-
-        Assert.True(deleted);
-
-        var result = await _context.Products
-            .Find(x => x.Id == product.Id)
-            .FirstOrDefaultAsync();
-
-        Assert.Null(result);
-    }
-
-    [Fact] // Does service retrieval by id work?
-    public async Task ServiceGetsProductById()
-    {
-        await _context.Products.DeleteManyAsync(_ => true);
-
-        var service = new ProductService(new ProductRepository(_context));
-
-        await service.CreateProduct("Lookup Test");
-
-        var inserted = await _context.Products
-            .Find(x => x.ProductName == "Lookup Test")
-            .FirstOrDefaultAsync();
-
-        Assert.NotNull(inserted);
-
-        var result = await service.GetByIdAsync(inserted.Id);
+        var result = await _service.CreateAsync(request);
 
         Assert.NotNull(result);
-        Assert.Equal("Lookup Test", result!.ProductName);
-    }
-
-    [Fact] // Does service return all products?
-    public async Task ServiceGetsAllProducts()
-    {
-        await _context.Products.DeleteManyAsync(_ => true);
-
-        var service = new ProductService(new ProductRepository(_context));
-
-        await service.CreateProduct("Product A");
-        await service.CreateProduct("Product B");
-
-        var result = await service.GetAllAsync();
-
-        Assert.True(result.Count >= 2);
-        Assert.Contains(result, x => x.ProductName == "Product A");
-        Assert.Contains(result, x => x.ProductName == "Product B");
+        Assert.Equal("New Game", result.ProductName);
     }
 }
