@@ -42,9 +42,6 @@ builder.Services.AddSingleton<MongoContext>();
 // Redis
 builder.Services.AddSingleton<RedisContext>();
 
-// Repo interface
-builder.Services.AddScoped<IRepository<Product>, ProductRepository>();
-
 // Repositories
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<UserReadRepository>();
@@ -73,7 +70,8 @@ builder.Services.AddScoped<PaymentReadRepository>();
 builder.Services.AddScoped<PaymentService>();
 
 // Products
-builder.Services.AddScoped<IRepository<Product>, ProductRepository>();
+builder.Services.AddScoped<IProductRepository<Product>, ProductRepository>();
+builder.Services.AddScoped<IProductReadRepository<Product>, ProductReadRepository>();
 builder.Services.AddScoped<ProductService>();
 
 

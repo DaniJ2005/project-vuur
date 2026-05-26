@@ -4,14 +4,17 @@ namespace Vuur.Api.Features.Products;
 
 public class ProductService
 {
-    private readonly IRepository<Product> _repo;
+    private readonly IProductRepository<Product> _repo;
+    private readonly IProductReadRepository<Product> _readRepo;
     private readonly IMapper _mapper;
 
     public ProductService(
-        IRepository<Product> repo,
+        IProductRepository<Product> repo,
+        IProductReadRepository<Product> readRepo,
         IMapper mapper)
     {
         _repo = repo;
+        _readRepo = readRepo;
         _mapper = mapper;
     }
 
@@ -43,12 +46,12 @@ public class ProductService
 
     public Task<List<Product>> GetAllAsync()
     {
-        return _repo.GetAllAsync();
+        return _readRepo.GetAllAsync();
     }
 
     public Task<Product?> GetByIdAsync(string id)
     {
-        return _repo.GetByIdAsync(id);
+        return _readRepo.GetByIdAsync(id);
     }
 
     public async Task<bool> UpdateAsync(
@@ -56,7 +59,7 @@ public class ProductService
         UpdateProductRequest request)
     {
         var existingProduct =
-            await _repo.GetByIdAsync(id);
+            await _readRepo.GetByIdAsync(id);
 
         if (existingProduct is null)
         {

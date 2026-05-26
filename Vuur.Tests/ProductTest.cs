@@ -9,24 +9,15 @@ namespace Vuur.Tests;
 
 public class ProductServiceTests
 {
-    // private readonly Mock<ProductRepository> _repoMock;
-    // private readonly Mock<IMapper> _mapperMock;
-    // private readonly ProductService _service;
-    // public ProductServiceTests()
-    // {
-    //     _repoMock = new Mock<ProductRepository>();
-    //     _mapperMock = new Mock<IMapper>();
-
-    //     _service = new ProductService(_repoMock.Object, _mapperMock.Object);
-    // }
-
-    private readonly Mock<IRepository<Product>> _repoMock;
+    private readonly Mock<IProductRepository<Product>> _repoMock;
+    private readonly Mock<IProductReadRepository<Product>> _readRepoMock;
     private readonly IMapper _mapper;
     private readonly ProductService _service;
 
     public ProductServiceTests()
     {
-        _repoMock = new Mock<IRepository<Product>>();
+        _repoMock = new Mock<IProductRepository<Product>>();
+        _readRepoMock = new Mock<IProductReadRepository<Product>>();
         var config = new MapperConfiguration(
             cfg =>
             {
@@ -39,7 +30,7 @@ public class ProductServiceTests
         );
 
         _mapper = config.CreateMapper();
-        _service = new ProductService(_repoMock.Object, _mapper);
+        _service = new ProductService(_repoMock.Object, _readRepoMock.Object, _mapper);
     }
 
     [Fact] // Creates product and returns mapped result
@@ -66,8 +57,15 @@ public class ProductServiceTests
         var result = await _service.CreateAsync(request);
 
         Assert.Equal("Test Product", result.ProductName);
+        Console.WriteLine("Product name is \"Test Product\"");
         Assert.Equal(50, result.Price);
+        Console.WriteLine("Product price is 50");
         Assert.Equal(true, result.IsNew);
+
+        // Finishing comment
+        // Conventies voor finishing comments zijn dat ze altijd beginnen met "Product supports..."
+        // en eindigen met "successfully!" (het uitroepteken is belangrijk)
+        Console.WriteLine("Product supports creation and mapping successfully!");
     }
 
     [Fact] // Updates all fields including numbers and booleans
@@ -91,7 +89,7 @@ public class ProductServiceTests
             UpdatedAt = DateTime.UtcNow
         };
 
-        _repoMock
+        _readRepoMock
             .Setup(r => r.GetByIdAsync("1"))
             .ReturnsAsync(existing);
 
@@ -117,8 +115,13 @@ public class ProductServiceTests
 
         Assert.True(result);
         Assert.Equal("New Name", existing.ProductName);
+        Console.WriteLine("Product name updated");
         Assert.Equal(99.99m, existing.Price);
+        Console.WriteLine("Product price updated");
         Assert.True(existing.IsFeatured);
+
+        // Finishing comment
+        Console.WriteLine("Product supports updates successfully!");
     }
 
     [Fact] // Updates only provided fields, keeps existing values
@@ -135,7 +138,7 @@ public class ProductServiceTests
             UpdatedAt = DateTime.UtcNow
         };
 
-        _repoMock.Setup(r => r.GetByIdAsync("1"))
+        _readRepoMock.Setup(r => r.GetByIdAsync("1"))
             .ReturnsAsync(existing);
 
         _repoMock.Setup(r => r.UpdateAsync(It.IsAny<Product>()))
@@ -158,9 +161,15 @@ public class ProductServiceTests
         var result = await _service.UpdateAsync("1", request);
 
         Assert.True(result);
+        Console.WriteLine("Result exists");
         Assert.Equal("Updated Only", existing.ProductName);
+        Console.WriteLine("Results name has been updated");
         Assert.Equal(10, existing.Price);
+        Console.WriteLine("Results price has been lowered to 10");
         Assert.False(existing.IsFeatured);
+
+        // Finishing comment
+        Console.WriteLine("Product supports partial updates!");
     }
 
     [Fact] // Deletes product and returns success status
@@ -172,6 +181,9 @@ public class ProductServiceTests
         var result = await _service.DeleteAsync("1");
 
         Assert.True(result);
+
+        // Finishing comment
+        Console.WriteLine("Product supports deletion!");
     }
 
     [Fact] // Retrieves product by id successfully
@@ -179,35 +191,16 @@ public class ProductServiceTests
     {
         var product = new Product { Id = "1", ProductName = "Test" };
 
-        _repoMock.Setup(r => r.GetByIdAsync("1"))
+        _readRepoMock.Setup(r => r.GetByIdAsync("1"))
             .ReturnsAsync(product);
 
         var result = await _service.GetByIdAsync("1");
 
         Assert.NotNull(result);
+        Console.WriteLine("Product retrieved successfully");
         Assert.Equal("Test", result!.ProductName);
-    }
 
-    [Fact] // Allows creation of new product instances
-    public async Task AddNewProduct_ShouldAllowNewInstances()
-    {
-        var request = new CreateProductRequest(
-            "New Game",
-            null,
-            "PC",
-            "RPG",
-            "Game",
-            60,
-            70,
-            10,
-            4.2m,
-            true,
-            true
-        );
-
-        var result = await _service.CreateAsync(request);
-
-        Assert.NotNull(result);
-        Assert.Equal("New Game", result.ProductName);
+        // Finishing comment
+        Console.WriteLine("Product supports retrieval by ID!");
     }
 }
