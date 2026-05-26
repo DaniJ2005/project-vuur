@@ -1,41 +1,148 @@
+# =============================================================================
+# Vuur — productie compose file (draait identiek op de schoolserver)
+#
+# Op de server:
+#   - Alleen frontend (80), api (8080) en filebrowser (8081) zijn extern bereikbaar.
+#   - Postgres / Mongo / Redis hebben GEEN host-port mapping → alleen via het
+#     interne docker-netwerk te benaderen. Veiliger en simpeler.
+#
+# Lokaal (dev):
+#   - docker-compose.override.yml wordt automatisch ingeladen en exposed de
+#     DB-ports zodat je met pgAdmin / Compass / redis-cli kunt verbinden.
+#
+# Variabelen komen uit een .env file in deze map. Zie .env.example.
+# =============================================================================
+
 services:
+  frontend:
+    # Op de server: image wordt van Docker Hub gepulld (door GitHub Actions gepushed).
+    # Lokaal kun je hetzelfde image bouwen met:  docker compose build frontend
+    image: danij2005/project-vuur-frontend:latest
+    build:
+      context: ./App
+      dockerfile: Dockerfile
+    container_name: vuur_frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+
+  api:
+    image: danij2005/project-vuur-api:latest
+    build:
+      context: ./Vuur.Api
+      dockerfile: Dockerfile
+    container_name: vuur_api
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+
+      # Alle env vars worden onder dezelfde flat namen doorgegeven als in .env,
+      # zodat EnvironmentVariables.cs ze 1-op-1 kan inlezen (zowel in productie
+      # via docker compose als lokaal via DotNetEnv).
+
+      # Postgres
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+      # Mongo — MongoContext bouwt zelf de connection string uit deze credentials.
+      MONGO_USER: ${MONGO_USER}
+      MONGO_PASSWORD: ${MONGO_PASSWORD}
+
+      # Redis — RedisContext bouwt zelf de connection string uit dit wachtwoord.
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+
+      # JWT
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ISSUER: ${JWT_ISSUER}
+      JWT_ACCESS_TOKEN_MINUTES: ${JWT_ACCESS_TOKEN_MINUTES}
+      JWT_REFRESH_TOKEN_DAYS: ${JWT_REFRESH_TOKEN_DAYS}
+
+      # CORS (optioneel — alleen nodig in dev wanneer frontend en api op
+      # verschillende origins draaien; in productie loopt alles via nginx).
+      # CORS_FRONTEND_ORIGIN: ${CORS_FRONTEND_ORIGIN}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   postgres:
-    image: postgres:16
+    image: postgres:16-alpine
     container_name: vuur_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 69892432
-      POSTGRES_DB: vuur
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - vuur_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      # $$ escape voorkomt dat compose deze variabelen zelf wil resolven.
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   mongo:
     image: mongo:7
     container_name: vuur_mongo
     restart: unless-stopped
     environment:
-      MONGO_INITDB_ROOT_USERNAME: mongo
-      MONGO_INITDB_ROOT_PASSWORD: 69892432
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
       MONGO_INITDB_DATABASE: vuur_db
-    ports:
-      - "27017:27017"
     volumes:
       - vuur_mongo_data:/data/db
+      # Bestaand init-script wordt 1x uitgevoerd bij eerste startup (lege volume).
+      - ./Vuur.Api/mongo-init.js:/docker-entrypoint-initdb.d/init.js:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
-    image: redis:7
+    image: redis:7-alpine
     container_name: vuur_redis
     restart: unless-stopped
-    command: redis-server --requirepass 69892432
-    ports:
-      - "6379:6379"
+    # --requirepass beveiligt redis met een wachtwoord, --appendonly zet
+    # persistentie aan zodat data een herstart overleeft.
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}", "--appendonly", "yes"]
     volumes:
       - vuur_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  filebrowser:
+    image: filebrowser/filebrowser:latest
+    container_name: vuur_filebrowser
+    restart: unless-stopped
+    ports:
+      # Verhuisd van 8080 → 8081 omdat de api nu 8080 gebruikt.
+      - "8081:80"
+    volumes:
+      # Mount de home folder zodat je het project en logs/configs kunt zien.
+      - ${HOME}:/srv
+      # Persistent config + user database voor filebrowser zelf.
+      - vuur_filebrowser_data:/database
+    environment:
+      - FB_DATABASE=/database/filebrowser.db
 
 volumes:
   vuur_postgres_data:
   vuur_mongo_data:
   vuur_redis_data:
+  vuur_filebrowser_data:

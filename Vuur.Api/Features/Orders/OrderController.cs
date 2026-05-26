@@ -8,7 +8,7 @@ namespace Vuur.Api.Features.Orders;
 /// Place and retrieve orders.
 /// </summary>
 [ApiController]
-[Route("/orders")]
+[Route("/api/orders")]
 [Authorize]
 [Produces("application/json")]
 public class OrderController(OrderService service) : ControllerBase

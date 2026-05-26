@@ -1,0 +1,35 @@
+# =============================================================================
+# Lokale dev override — wordt automatisch ingeladen door `docker compose up`
+# zolang dit bestand naast docker-compose.yml staat.
+#
+# Wat dit doet:
+#   - Postgres / Mongo / Redis krijgen host-port mappings, zodat je vanaf
+#     je laptop met pgAdmin / Mongo Compass / redis-cli kunt verbinden.
+#   - De productie compose file laat deze ports DICHT (alleen intern netwerk).
+#
+# Belangrijk: dit bestand wordt NIET naar de server gescp't. De server
+# gebruikt alleen docker-compose.yml, dus daar blijven de DBs intern.
+# =============================================================================
+
+services:
+  # Lokaal draait de api in Development zodat Swagger UI op /swagger werkt
+  # en je nettere foutpages krijgt. Op de server (zonder deze override)
+  # blijft Production actief.
+  api:
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+
+  postgres:
+    ports:
+      # Host-poort 5433 i.p.v. 5432 om conflicten te vermijden met een
+      # eventuele lokale Postgres-installatie die al op 5432 luistert.
+      # Intern in het docker-netwerk blijft postgres gewoon op 5432.
+      - "5433:5432"
+
+  mongo:
+    ports:
+      - "27017:27017"
+
+  redis:
+    ports:
+      - "6379:6379"

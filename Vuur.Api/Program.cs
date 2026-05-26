@@ -1,24 +1,21 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using Vuur.Api.Data;
+using Vuur.Api.Config;
 using Vuur.Api.Features.Auth;
 using Vuur.Api.Features.Orders;
 using Vuur.Api.Features.Users;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Load .env in development and push values into configuration
+// Load .env from the solution root (one directory above Vuur.Api).
 if (builder.Environment.IsDevelopment())
 {
-    var envPath = Path.Combine(Directory.GetCurrentDirectory(), ".env");
-    if (File.Exists(envPath))
-    {
-        DotNetEnv.Env.Load(envPath);
-        // Push loaded env vars into IConfiguration so contexts can read them
-        builder.Configuration.AddEnvironmentVariables();
-    }
+    var envPath = Path.Combine(Directory.GetCurrentDirectory(), "..", ".env");
+    DotNetEnv.Env.Load(envPath);
+    // Push loaded env vars into IConfiguration so contexts can read them
+    builder.Configuration.AddEnvironmentVariables();
 }
 
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
@@ -26,6 +23,9 @@ JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 // Make Dapper map snake_case columns to PascalCase properties automatically
 Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
 
+// Custom Enviroment Variables class
+var env = new EnvironmentVariables(builder.Configuration);
+builder.Services.AddSingleton(env);
 
 // PostgreSQL
 builder.Services.AddSingleton<PostgresContext>();
@@ -63,8 +63,8 @@ builder.Services.AddScoped<PaymentRepository>();
 builder.Services.AddScoped<PaymentReadRepository>();
 builder.Services.AddScoped<PaymentService>();
 
-var jwtSecret = builder.Configuration["Jwt:Secret"] ?? throw new InvalidOperationException("Jwt:Secret not configured.");
-var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? throw new InvalidOperationException("Jwt:Issuer not configured.");
+var jwtSecret = env.JwtSecret;
+var jwtIssuer = env.JwtIssuer;
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -120,25 +120,29 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// allow react frontend without CORS issues
-builder.Services.AddCors(options =>
+// CORS is alleen nodig als frontend en api op verschillende origins draaien
+// (lokale dev: Vite op :5173, API op :5245). In productie loopt alles via
+// dezelfde nginx reverse proxy → same-origin → geen CORS nodig. We registreren
+// de policy dus alleen als CORS_FRONTEND_ORIGIN is gezet in de .env.
+if (env.CorsFrontendOrigin is not null)
 {
-    options.AddPolicy("AllowAll", policy =>
+    builder.Services.AddCors(options =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        options.AddPolicy("Frontend", policy =>
+        {
+            policy.WithOrigins(env.CorsFrontendOrigin)
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials();
+        });
     });
-});
+}
 
 var app = builder.Build();
 
 // Run SQL migrations via DbUp (before the app starts serving requests)
-var connectionString = Environment.GetEnvironmentVariable("POSTGRES_CONNECTION_STRING")
-    ?? app.Configuration["POSTGRES_CONNECTION_STRING"]
-    ?? throw new InvalidOperationException("POSTGRES_CONNECTION_STRING is not configured.");
-
-MigrationRunner.Run(connectionString);
+var pgContext = app.Services.GetRequiredService<PostgresContext>();
+pgContext.RunMigrations();
 
 // middleware pipeline
 if (app.Environment.IsDevelopment())
@@ -147,8 +151,14 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
-app.UseCors("AllowAll");
+
+
+// app.UseHttpsRedirection();
+// Alleen UseCors aanroepen als we de policy ook daadwerkelijk hebben geregistreerd.
+if (env.CorsFrontendOrigin is not null)
+{
+    app.UseCors("Frontend");
+}
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

@@ -8,7 +8,7 @@ namespace Vuur.Api.Features.Users;
 /// Manage the authenticated user's product wishlist.
 /// </summary>
 [ApiController]
-[Route("/wishlist")]
+[Route("/api/wishlist")]
 [Authorize]
 [Produces("application/json")]
 public class WishlistController(WishlistService service) : ControllerBase

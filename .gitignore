@@ -100,7 +100,9 @@ dist/
 ############################
 # Docker
 ############################
-docker-compose.override.yml
+# docker-compose.override.yml staat NU wel onder versiebeheer omdat
+# het de standaard dev-setup voor het hele team bevat (DB ports openzetten).
+# De server gebruikt deze override niet — daar staat alleen docker-compose.yml.
 
 ############################
 # Misc
@@ -110,7 +112,21 @@ docker-compose.override.yml
 *.temp
 
 ############################
-# .env
+# .env  (secrets — nooit committen)
 ############################
-
+.env
 *.env
+# Uitzondering: .env.example IS gecommit als template voor het team.
+!.env.example
+!*.env.example
+
+############################
+# SSH / deploy keys - NOOIT committen
+############################
+vuur_deploy_key
+vuur_deploy_key.pub
+*_deploy_key
+*_deploy_key.pub
+id_rsa
+id_ed25519
+*.pem

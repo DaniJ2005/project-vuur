@@ -4,23 +4,24 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using Vuur.Api.Features.Users;
+using Vuur.Api.Config;
 
 namespace Vuur.Api.Features.Auth;
 
-public class TokenService(IConfiguration config)
+public class TokenService(EnvironmentVariables env)
 {
     // Pull from config; fail fast if missing
-    private string JwtSecret      => config["Jwt:Secret"]      ?? throw new InvalidOperationException("Jwt:Secret not configured.");
-    private string JwtIssuer      => config["Jwt:Issuer"]      ?? throw new InvalidOperationException("Jwt:Issuer not configured.");
-    private int    AccessTokenMin => int.Parse(config["Jwt:AccessTokenMinutes"]  ?? "15");
-    private int    RefreshTokenDay => int.Parse(config["Jwt:RefreshTokenDays"]   ?? "7");
+    private string JwtSecret => env.JwtSecret;
+    private string JwtIssuer => env.JwtIssuer;
+    private int AccessTokenMin => int.Parse(env.JwtAccessTokenMinutes.ToString());
+    private int RefreshTokenDay => int.Parse(env.JwtRefreshTokenDays.ToString());
 
 
     public (string token, DateTime expiresAt) GenerateAccessToken(User user)
     {
-        var key   = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(JwtSecret));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(JwtSecret));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-        var exp   = DateTime.UtcNow.AddMinutes(AccessTokenMin);
+        var exp = DateTime.UtcNow.AddMinutes(AccessTokenMin);
 
         var claims = new[]
         {
@@ -32,9 +33,9 @@ public class TokenService(IConfiguration config)
         };
 
         var token = new JwtSecurityToken(
-            issuer:             JwtIssuer,
-            claims:             claims,
-            expires:            exp,
+            issuer: JwtIssuer,
+            claims: claims,
+            expires: exp,
             signingCredentials: creds
         );
 
@@ -45,7 +46,7 @@ public class TokenService(IConfiguration config)
     {
         var bytes = RandomNumberGenerator.GetBytes(64);
         var token = Convert.ToBase64String(bytes);
-        var exp   = DateTime.UtcNow.AddDays(RefreshTokenDay);
+        var exp = DateTime.UtcNow.AddDays(RefreshTokenDay);
         return (token, exp);
     }
 }
