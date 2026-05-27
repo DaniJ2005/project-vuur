@@ -15,7 +15,8 @@ public class EnvironmentVariables
 
   public string MongoUser { get; }
   public string MongoPassword { get; }
-
+    public string MongoHost { get; }
+    public string MongoPort { get; }
   public string RedisPassword { get; }
 
   public string JwtSecret { get; }
@@ -43,6 +44,8 @@ public class EnvironmentVariables
     // Mongo Vars
     MongoUser = Required("MONGO_USER");
     MongoPassword = Required("MONGO_PASSWORD");
+    MongoHost = Required("MONGO_HOST");
+    MongoPort = Required("MONGO_PORT");
 
     // Redis Vars
     RedisPassword = Required("REDIS_PASSWORD");
@@ -116,6 +119,8 @@ public class EnvironmentVariables
 
     Console.WriteLine($"MONGO_USER: {MongoUser}");
     Console.WriteLine($"MONGO_PASSWORD: {MongoPassword}");
+    Console.WriteLine($"MONGO_HOST: {MongoHost}");
+    Console.WriteLine($"MONGO_PORT: {MongoPort}");
 
     Console.WriteLine($"REDIS_PASSWORD: {RedisPassword}");
 
