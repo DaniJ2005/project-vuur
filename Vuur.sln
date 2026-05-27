@@ -5,6 +5,8 @@ VisualStudioVersion = 18.3.11512.155
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vuur.Api", "Vuur.Api\Vuur.Api.csproj", "{0E2D8BA1-1E3A-4564-BA4B-1C49FD8E982E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vuur.Tests", "Vuur.Tests\Vuur.Tests.csproj", "{FABC8FCB-0448-4D05-A598-03BAF89AF4D5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,18 @@ Global
 		{0E2D8BA1-1E3A-4564-BA4B-1C49FD8E982E}.Release|x64.Build.0 = Release|Any CPU
 		{0E2D8BA1-1E3A-4564-BA4B-1C49FD8E982E}.Release|x86.ActiveCfg = Release|Any CPU
 		{0E2D8BA1-1E3A-4564-BA4B-1C49FD8E982E}.Release|x86.Build.0 = Release|Any CPU
+		{FABC8FCB-0448-4D05-A598-03BAF89AF4D5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FABC8FCB-0448-4D05-A598-03BAF89AF4D5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FABC8FCB-0448-4D05-A598-03BAF89AF4D5}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{FABC8FCB-0448-4D05-A598-03BAF89AF4D5}.Debug|x64.Build.0 = Debug|Any CPU
+		{FABC8FCB-0448-4D05-A598-03BAF89AF4D5}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{FABC8FCB-0448-4D05-A598-03BAF89AF4D5}.Debug|x86.Build.0 = Debug|Any CPU
+		{FABC8FCB-0448-4D05-A598-03BAF89AF4D5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FABC8FCB-0448-4D05-A598-03BAF89AF4D5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FABC8FCB-0448-4D05-A598-03BAF89AF4D5}.Release|x64.ActiveCfg = Release|Any CPU
+		{FABC8FCB-0448-4D05-A598-03BAF89AF4D5}.Release|x64.Build.0 = Release|Any CPU
+		{FABC8FCB-0448-4D05-A598-03BAF89AF4D5}.Release|x86.ActiveCfg = Release|Any CPU
+		{FABC8FCB-0448-4D05-A598-03BAF89AF4D5}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
