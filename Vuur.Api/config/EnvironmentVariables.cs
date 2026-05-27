@@ -15,8 +15,8 @@ public class EnvironmentVariables
 
   public string MongoUser { get; }
   public string MongoPassword { get; }
-    public string MongoHost { get; }
-    public string MongoPort { get; }
+  public string MongoHost { get; }
+  public string MongoPort { get; }
   public string RedisPassword { get; }
 
   public string JwtSecret { get; }
@@ -28,6 +28,9 @@ public class EnvironmentVariables
   // In productie loopt alles via dezelfde nginx reverse proxy (same-origin),
   // dus daar mag deze variable leeg blijven.
   public string? CorsFrontendOrigin { get; }
+
+  // Swagger aan of uitzetten
+  public bool EnableSwagger { get; }
 
   public EnvironmentVariables(IConfiguration config)
   {
@@ -59,6 +62,9 @@ public class EnvironmentVariables
     // Cors Var (optional), leeg laten in productie als alles via dezelfde nginx reverse proxy loopt
     CorsFrontendOrigin = Optional("CORS_FRONTEND_ORIGIN");
 
+    // Swagger aan of uit zetten
+    EnableSwagger = RequiredBool("ENABLE_SWAGGER");
+
     // Gebruiken voor debuggen om te checken of env vars goed geladen zijn
     PrintEnvironmentVariables();
 
@@ -80,6 +86,25 @@ public class EnvironmentVariables
       return string.Empty;
     }
     return raw;
+  }
+
+  private bool RequiredBool(string key)
+  {
+      var raw = _config[key];
+
+      if (string.IsNullOrWhiteSpace(raw))
+      {
+          _errors.Add($"{key} is missing");
+          return false;
+      }
+
+      if (!bool.TryParse(raw, out var value))
+      {
+          _errors.Add($"{key} is not a valid boolean");
+          return false;
+      }
+
+      return value;
   }
 
   // Voor variables die optioneel zijn — null als ze ontbreken,
