@@ -1,11 +1,14 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
+using AutoMapper;
 using Vuur.Api.Data;
 using Vuur.Api.Config;
+using Vuur.Api.Features;
 using Vuur.Api.Features.Auth;
 using Vuur.Api.Features.Orders;
 using Vuur.Api.Features.Users;
+using Vuur.Api.Features.Products;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,6 +29,9 @@ Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
 // Custom Enviroment Variables class
 var env = new EnvironmentVariables(builder.Configuration);
 builder.Services.AddSingleton(env);
+
+// Library for automapping
+builder.Services.AddAutoMapper(typeof(ProductProfile));
 
 // PostgreSQL
 builder.Services.AddSingleton<PostgresContext>();
@@ -62,6 +68,12 @@ builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<PaymentRepository>();
 builder.Services.AddScoped<PaymentReadRepository>();
 builder.Services.AddScoped<PaymentService>();
+
+// Products
+builder.Services.AddScoped<IProductRepository<Product>, ProductRepository>();
+builder.Services.AddScoped<IProductReadRepository<Product>, ProductReadRepository>();
+builder.Services.AddScoped<ProductService>();
+
 
 var jwtSecret = env.JwtSecret;
 var jwtIssuer = env.JwtIssuer;
