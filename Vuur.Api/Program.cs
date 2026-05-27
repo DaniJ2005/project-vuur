@@ -157,7 +157,7 @@ var pgContext = app.Services.GetRequiredService<PostgresContext>();
 pgContext.RunMigrations();
 
 // middleware pipeline
-if (app.Environment.IsDevelopment())
+if (env.EnableSwagger)
 {
     app.UseSwagger();
     app.UseSwaggerUI();
