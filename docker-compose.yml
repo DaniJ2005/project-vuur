@@ -70,6 +70,8 @@ services:
       # CORS (optioneel — alleen nodig in dev wanneer frontend en api op
       # verschillende origins draaien; in productie loopt alles via nginx).
       # CORS_FRONTEND_ORIGIN: ${CORS_FRONTEND_ORIGIN}
+      ENABLE_SWAGGER: ${ENABLE_SWAGGER}
+
     depends_on:
       postgres:
         condition: service_healthy
