@@ -9,6 +9,8 @@ import OrderSummary from "../components/OrderSummary";
 
 const INPUT_CLASS =
   "w-full bg-[#0D0D0D] border border-[#2A2A2A] focus:border-[#F25B29] text-gray-300 placeholder-gray-700 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#F25B29] transition-all";
+const DISABLED_INPUT_CLASS =
+  "w-full bg-[#0D0D0D] border border-[#2A2A2A] focus:border-[#F25B29] text-gray-600 placeholder-gray-700 rounded-lg px-4 py-3 text-sm cursor-not-allowed focus:outline-none focus:ring-1 focus:ring-[#F25B29] transition-all";
 const LABEL_CLASS =
   "text-gray-400 text-xs font-bold uppercase tracking-wider block mb-1.5";
 
@@ -234,7 +236,15 @@ const Checkout: React.FC = () => {
                   </div>
                   <div className="col-span-2">
                     <label className={LABEL_CLASS}>E-mailadres</label>
-                    <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="email@example.com" className={INPUT_CLASS} />
+
+                    {/* Email field disabelen als de user ingelogd is, die hoeft dan niet veranderd te worden door de gebruiker */}
+                    {isAuthenticated ? (
+                        <div className={DISABLED_INPUT_CLASS}>{email}</div>
+                      ) : (
+                        <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="email@example.com" className={INPUT_CLASS} />
+                      )
+                    }
+                    {/* Label bijvoegen als de gebruiker keys in de winkelwagen heeft */}
                     {hasKey && (
                       <p className="text-gray-600 text-xs mt-1">Je keys worden hier naartoe gestuurd</p>
                     )}
