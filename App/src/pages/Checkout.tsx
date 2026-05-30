@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "@/features/auth/AuthProvider";
-import { useAddresses, type Address } from "../context/AddressContext";
+import { useAddresses } from "../context/AddressContext";
+import type { Address } from "@/features/addresses/addresses.types";
 import { cartHasDisc, cartTotal, type CartItem } from "../types/game";
 import OrderSummary from "../components/OrderSummary";
 
@@ -70,7 +71,6 @@ const Checkout: React.FC = () => {
   const [firstName, setFirstName] = useState(user?.firstName ?? "");
   const [lastName, setLastName] = useState(user?.lastName ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
-  const [phone, setPhone] = useState("");
 
   const hasPrefilled = useRef(false);
   useEffect(() => {
@@ -99,16 +99,15 @@ const Checkout: React.FC = () => {
   const [selectedPayment, setSelectedPayment] = useState("ideal");
   const [selectedShipping, setSelectedShipping] = useState("standard");
 
+  // The recipient name comes from the logged-in account (prefilled above), so
+  // applying a saved address only copies its location fields.
   const applyAddress = (a: Address) => {
-    setFirstName(a.firstName);
-    setLastName(a.lastName);
     setStreet(a.street);
     setHouseNumber(a.houseNumber);
     setHouseExt(a.houseExt);
     setPostCode(a.postCode);
     setCity(a.city);
-    setCountry(a.country);
-    if (a.phone) setPhone(a.phone);
+    setCountry(a.countryCode);
   };
 
   // When the picker selection changes, copy fields into the form state so the
@@ -240,12 +239,6 @@ const Checkout: React.FC = () => {
                       <p className="text-gray-600 text-xs mt-1">Je keys worden hier naartoe gestuurd</p>
                     )}
                   </div>
-                  {hasDisc && (
-                    <div className="col-span-2">
-                      <label className={LABEL_CLASS}>Telefoonnummer</label>
-                      <input value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" placeholder="+31 6 12345678" className={INPUT_CLASS} />
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -331,7 +324,6 @@ const Checkout: React.FC = () => {
                                 </span>
                               )}
                             </div>
-                            <p className="text-gray-400 text-xs">{a.firstName} {a.lastName}</p>
                             <p className="text-gray-500 text-xs">
                               {a.street} {a.houseNumber}{a.houseExt}, {a.postCode} {a.city}
                             </p>

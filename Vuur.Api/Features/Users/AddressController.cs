@@ -50,6 +50,18 @@ public class AddressController(AddressService service) : ControllerBase
         return Ok(response);
     }
 
+    /// <summary>Mark an address as the user's default.</summary>
+    [HttpPut("{id:guid}/default")]
+    [ProducesResponseType(typeof(AddressResponse), 200)]
+    [ProducesResponseType(typeof(object), 404)]
+    [ProducesResponseType(typeof(object), 403)]
+    public async Task<IActionResult> SetDefault(Guid id)
+    {
+        var (success, error, response) = await service.SetDefaultAsync(id, CurrentUserId);
+        if (!success) return error == "Access denied." ? Forbid() : NotFound(new { error });
+        return Ok(response);
+    }
+
     /// <summary>Delete an address.</summary>
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(204)]
