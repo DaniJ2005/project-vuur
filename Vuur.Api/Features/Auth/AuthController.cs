@@ -36,7 +36,7 @@ public class AuthController(AuthService authService, UserReadRepository userRead
 
     // POST /api/auth/refresh
     [HttpPost("refresh")]
-    public async Task<IActionResult> Refresh([FromBody] RefreshRequest req)
+    public async Task<IActionResult> Refresh()
     {
         var refreshToken = Request.Cookies["refresh_token"];
         if (string.IsNullOrEmpty(refreshToken))
@@ -51,14 +51,17 @@ public class AuthController(AuthService authService, UserReadRepository userRead
 
     // POST /api/auth/logout
     [HttpPost("logout")]
-    public async Task<IActionResult> Logout([FromBody] RefreshRequest req)
+    public async Task<IActionResult> Logout()
     {
         var refreshToken = Request.Cookies["refresh_token"];
         if (refreshToken is not null)
             await authService.LogoutAsync(refreshToken);
 
         Response.Cookies.Delete("access_token");
-        Response.Cookies.Delete("refresh_token");
+        Response.Cookies.Delete("refresh_token", new CookieOptions
+        {
+            Path = "/api/auth/refresh",
+        });
         return NoContent();
     }
 
