@@ -55,6 +55,8 @@ services:
       # Mongo — MongoContext bouwt zelf de connection string uit deze credentials.
       MONGO_USER: ${MONGO_USER}
       MONGO_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_HOST: ${MONGO_HOST}
+      MONGO_PORT: ${MONGO_PORT}
 
       # Redis — RedisContext bouwt zelf de connection string uit dit wachtwoord.
       REDIS_PASSWORD: ${REDIS_PASSWORD}
@@ -68,6 +70,8 @@ services:
       # CORS (optioneel — alleen nodig in dev wanneer frontend en api op
       # verschillende origins draaien; in productie loopt alles via nginx).
       # CORS_FRONTEND_ORIGIN: ${CORS_FRONTEND_ORIGIN}
+      ENABLE_SWAGGER: ${ENABLE_SWAGGER}
+
     depends_on:
       postgres:
         condition: service_healthy

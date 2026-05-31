@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Vuur.Api.Data;
 using Vuur.Api.Features.Users;
 
 namespace Vuur.Api.Features.Auth;
@@ -6,7 +7,8 @@ namespace Vuur.Api.Features.Auth;
 public class AuthService(
     UserRepository userRepo,
     UserReadRepository userReadRepo,
-    TokenService tokenService)
+    TokenService tokenService,
+    RedisContext redis)
 {
     private readonly PasswordHasher<User> _hasher = new();
 
@@ -54,31 +56,33 @@ public class AuthService(
 
         return await IssueTokensAsync(user);
     }
-
     public async Task<(bool success, string? error, AuthResponse? response)> RefreshAsync(RefreshRequest req)
     {
-        var record = await userReadRepo.GetValidRefreshTokenAsync(req.RefreshToken);
-        if (record is null)
+        var userId = await redis.GetRefreshTokenAsync(req.RefreshToken);
+        if (userId is null)
             return (false, "Refresh token is invalid or expired.", null);
 
-        var user = await userReadRepo.GetByIdAsUserAsync(record.UserId);
+        var user = await userReadRepo.GetByIdAsUserAsync(userId.Value);
         if (user is null)
             return (false, "User not found.", null);
 
-        await userRepo.RevokeRefreshTokenAsync(req.RefreshToken);
+        await redis.DeleteRefreshTokenAsync(req.RefreshToken);
 
         return await IssueTokensAsync(user);
     }
 
     public async Task<bool> LogoutAsync(string refreshToken)
-        => await userRepo.RevokeRefreshTokenAsync(refreshToken);
+    {
+        await redis.DeleteRefreshTokenAsync(refreshToken);
+        return true;
+    }
 
     private async Task<(bool, string?, AuthResponse)> IssueTokensAsync(User user)
     {
         var (accessToken, accessExp) = tokenService.GenerateAccessToken(user);
         var (refreshToken, refreshExp) = tokenService.GenerateRefreshToken();
 
-        await userRepo.SaveRefreshTokenAsync(user.Id, refreshToken, refreshExp);
+        await redis.SetRefreshTokenAsync(refreshToken, user.Id);
 
         return (true, null, new AuthResponse(accessToken, refreshToken, accessExp));
     }

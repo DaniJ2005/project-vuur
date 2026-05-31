@@ -48,22 +48,6 @@ public class UserReadRepository(PostgresContext db)
         return count > 0;
     }
 
-    public async Task<RefreshTokenRecord?> GetValidRefreshTokenAsync(string token)
-    {
-        const string sql = """
-            SELECT rt.id, rt.user_id, rt.token, rt.expires_at
-            FROM   refresh_tokens rt
-            WHERE  rt.token      = @Token
-              AND  rt.revoked_at IS NULL
-              AND  rt.expires_at  > @Now
-            LIMIT  1;
-            """;
-
-        using var conn = db.CreateConnection();
-        return await conn.QuerySingleOrDefaultAsync<RefreshTokenRecord>(sql,
-            new { Token = token, Now = DateTime.UtcNow });
-    }
-
     public async Task<Role?> GetRoleByNameAsync(string roleName)
     {
         const string sql = "SELECT * FROM roles WHERE role_name = @RoleName LIMIT 1;";
@@ -83,12 +67,4 @@ public class UserWithRole
     public string RoleName { get; set; } = null!;
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
-}
-
-public class RefreshTokenRecord
-{
-    public Guid Id { get; set; }
-    public Guid UserId { get; set; }
-    public string Token { get; set; } = null!;
-    public DateTime ExpiresAt { get; set; }
 }
