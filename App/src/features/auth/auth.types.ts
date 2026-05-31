@@ -11,9 +11,7 @@ export interface LoginRequest {
 }
 
 export interface AuthResponse {
-  accessToken: string;
-  refreshToken: string;
-  accessTokenExpiresAt: string; // ISO datetime
+  expiresAt: string;
 }
 
 export interface UserResponse {

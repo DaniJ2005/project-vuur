@@ -17,7 +17,9 @@ public class AuthController(AuthService authService, UserReadRepository userRead
     {
         var (success, error, response) = await authService.RegisterAsync(req);
         if (!success) return Conflict(new { error });
-        return Ok(response);
+        
+        SetAuthCookies(response!);
+        return Ok(new { expiresAt = response!.AccessTokenExpiresAt });
     }
 
     // POST /api/auth/login
@@ -26,27 +28,40 @@ public class AuthController(AuthService authService, UserReadRepository userRead
     {
         var (success, error, response) = await authService.LoginAsync(req);
         if (!success) return Unauthorized(new { error });
-        return Ok(response);
+
+        SetAuthCookies(response!);
+        return Ok(new { expiresAt = response!.AccessTokenExpiresAt });
     }
 
     // POST /api/auth/refresh
     [HttpPost("refresh")]
     public async Task<IActionResult> Refresh([FromBody] RefreshRequest req)
     {
-        var (success, error, response) = await authService.RefreshAsync(req);
+        var refreshToken = Request.Cookies["refresh_token"];
+        if (string.IsNullOrEmpty(refreshToken))
+            return Unauthorized(new { error = "No refresh token present." });
+
+        var (success, error, response) = await authService.RefreshAsync(new RefreshRequest(refreshToken));
         if (!success) return Unauthorized(new { error });
-        return Ok(response);
+
+        SetAuthCookies(response!);
+        return Ok(new { expiresAt = response!.AccessTokenExpiresAt });
     }
 
     // POST /api/auth/logout
     [HttpPost("logout")]
     public async Task<IActionResult> Logout([FromBody] RefreshRequest req)
     {
-        await authService.LogoutAsync(req.RefreshToken);
+        var refreshToken = Request.Cookies["refresh_token"];
+        if (refreshToken is not null)
+            await authService.LogoutAsync(refreshToken);
+
+        Response.Cookies.Delete("access_token");
+        Response.Cookies.Delete("refresh_token");
         return NoContent();
     }
 
-    // GET /api/auth/me  — requires a valid JWT
+    // GET /api/auth/me
     [HttpGet("me")]
     [Authorize]
     public async Task<IActionResult> Me()
@@ -60,5 +75,29 @@ public class AuthController(AuthService authService, UserReadRepository userRead
         if (user is null) return NotFound();
 
         return Ok(new UserResponse(user.Id, user.FirstName, user.LastName, user.Email, user.RoleName));
+    }
+
+    private void SetAuthCookies(AuthResponse response)
+    {
+        var isHttps = HttpContext.Request.IsHttps;
+
+        var cookieOptions = new CookieOptions
+        {
+            HttpOnly = true,
+            Secure   = isHttps,
+            SameSite = isHttps ? SameSiteMode.None : SameSiteMode.Lax,
+            Expires  = response.AccessTokenExpiresAt,
+        };
+
+        Response.Cookies.Append("access_token", response.AccessToken, cookieOptions);
+
+        Response.Cookies.Append("refresh_token", response.RefreshToken, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure   = isHttps,
+            SameSite = isHttps ? SameSiteMode.None : SameSiteMode.Lax,
+            Expires  = DateTime.UtcNow.AddDays(30),
+            Path     = "/api/auth/refresh",
+        });
     }
 }
