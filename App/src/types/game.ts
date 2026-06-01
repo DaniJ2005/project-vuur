@@ -1,7 +1,7 @@
 export type GameType = "key" | "disc";
 
 export type CatalogGame = {
-  id: number;
+  id: string;
   title: string;
   description?: string;
   platform: string;
@@ -17,7 +17,7 @@ export type CatalogGame = {
 };
 
 export type CartGame = {
-  id: number;
+  id: string;
   title: string;
   platform: string;
   price: number;
@@ -44,4 +44,3 @@ export function cartCount(items: CartItem[]): number {
 export function cartHasDisc(items: CartItem[]): boolean {
   return items.some((item) => item.game.type === "disc");
 }
- 

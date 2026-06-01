@@ -14,7 +14,6 @@ import NavBar from "./components/NavBar";
 import CartSidebar from "./components/CartSidebar";
 import ScrollToTop from "./components/ScrollToTop";
 import { ProtectedRoute } from "@/features/auth/ProtectedRoute";
-import { allGames } from "./data/catalogData";
 
 function App() {
   return (
@@ -25,7 +24,7 @@ function App() {
       <main className="flex-1">
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/catalog" element={<Catalog games={allGames} />} />
+          <Route path="/catalog" element={<Catalog />} />
           <Route path="/game/:id" element={<GameDetail />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
