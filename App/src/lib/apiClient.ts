@@ -1,48 +1,33 @@
-import axios, { AxiosError, type AxiosRequestConfig, type InternalAxiosRequestConfig } from 'axios';
-import { tokenStorage } from './tokenStorage';
+import axios, { AxiosError, type AxiosRequestConfig } from 'axios';
 
 const BASE = import.meta.env.VITE_API_URL ?? '';
 
 // Aparte axios instance voor refresh, zonder interceptors,
 // anders krijg je een infinite loop als /auth/refresh zelf 401 geeft.
-const refreshClient = axios.create({ baseURL: BASE });
+const refreshClient = axios.create({
+  baseURL: BASE,
+  withCredentials: true,
+});
 
 export const api = axios.create({
   baseURL: BASE,
   headers: { 'Content-Type': 'application/json' },
-});
-
-// --- REQUEST interceptor: bearer token erop plakken -------------------------
-api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const token = tokenStorage.getAccess();
-  if (token && !config.headers.has('Authorization')) {
-    config.headers.set('Authorization', `Bearer ${token}`);
-  }
-  return config;
+  withCredentials: true, // stuur cookies mee op elk request
 });
 
 // --- REFRESH dedup: bij meerdere parallelle 401's slechts één refresh call --
-let refreshPromise: Promise<string | null> | null = null;
+let refreshPromise: Promise<boolean> | null = null;
 
-async function refreshTokens(): Promise<string | null> {
-  const refreshToken = tokenStorage.getRefresh();
-  if (!refreshToken) return null;
-
+async function refreshTokens(): Promise<boolean> {
   try {
-    const { data } = await refreshClient.post<{
-      accessToken: string; refreshToken: string; accessTokenExpiresAt: string;
-    }>('/api/auth/refresh', { refreshToken });
-
-    tokenStorage.set(data.accessToken, data.refreshToken);
-    return data.accessToken;
+    await refreshClient.post('/api/auth/refresh');
+    return true;
   } catch {
-    tokenStorage.clear();
-    return null;
+    return false;
   }
 }
 
 // --- RESPONSE interceptor: 401 → refresh → retry ----------------------------
-// We taggen de config met `_retry` zodat we niet in een oneindige lus belanden.
 type RetryConfig = AxiosRequestConfig & { _retry?: boolean };
 
 api.interceptors.response.use(
@@ -64,13 +49,12 @@ api.interceptors.response.use(
 
     original._retry = true;
     refreshPromise ??= refreshTokens().finally(() => { refreshPromise = null; });
-    const newToken = await refreshPromise;
+    const ok = await refreshPromise;
 
-    if (!newToken) {
+    if (!ok) {
       return Promise.reject(error);
     }
 
-    original.headers = { ...original.headers, Authorization: `Bearer ${newToken}` };
     return api(original);
   },
 );
