@@ -2,23 +2,11 @@ import { useSyncExternalStore } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { addressesApi } from './addresses.api';
 import type { AddressDraft } from './addresses.types';
-import { tokenStorage } from '@/lib/tokenStorage';
 
 export const addressesKey = ['addresses'] as const;
 
 
-// Zelfde reactieve weergave van de access token als in auth.hooks:
-// zorgt voor re-renders (en het opnieuw inschakelen van de query) wanneer een token wordt gezet of verwijderd, zodat de lijst direct na het inloggen wordt geladen.
-function useAccessToken() {
-  return useSyncExternalStore(
-    tokenStorage.subscribe,
-    tokenStorage.getAccess,
-    () => null,
-  );
-}
-
 export function useAddressesQuery() {
-  const accessToken = useAccessToken();
   return useQuery({
     queryKey: addressesKey,
     queryFn: addressesApi.list,
