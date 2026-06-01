@@ -148,6 +148,9 @@ const Checkout: React.FC = () => {
 
   const processPayment = () => {
     setConfirmedItems(cartItems);
+    
+    // ORDER, Place order in backend
+
     setStep("confirmation");
     // Clear cart so navigating away does not re-trigger checkout for the same items
     cartItems.forEach((i) => removeFromCart(i.game.id));
