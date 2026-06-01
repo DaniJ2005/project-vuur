@@ -9,8 +9,7 @@ import GameCard from "../components/GameCard";
 
 const GameDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const gameId = Number(id);
-  const game = useMemo(() => allGames.find((g) => g.id === gameId), [gameId]);
+  const game = useMemo(() => allGames.find((g) => g.id === id), [id]);
   const { addToCart, openCart } = useCart();
   const { isAuthenticated } = useAuth();
   const { isInWishlist, toggleWishlist } = useWishlist();

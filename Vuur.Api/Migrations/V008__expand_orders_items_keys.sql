@@ -71,3 +71,4 @@ CREATE TABLE IF NOT EXISTS game_keys (
 --               WHERE product_id=$2 AND status='available'
 --               LIMIT 1 FOR UPDATE SKIP LOCKED) RETURNING key_code;
 CREATE INDEX IF NOT EXISTS idx_game_keys_product_status ON game_keys (product_id, status);
+ 

@@ -1,16 +1,16 @@
-import { useSyncExternalStore } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { addressesApi } from './addresses.api';
 import type { AddressDraft } from './addresses.types';
+import { useMe } from "@/features/auth/auth.hooks";
 
 export const addressesKey = ['addresses'] as const;
 
-
 export function useAddressesQuery() {
+  const { data: user } = useMe();
   return useQuery({
     queryKey: addressesKey,
     queryFn: addressesApi.list,
-    enabled: !!accessToken, // Niet proberen te fetchen zonder token, want dan krijg je een 401 die je moet afhandelen.
+    enabled: !!user, // Niet proberen te fetchen zonder token, want dan krijg je een 401 die je moet afhandelen.
     staleTime: 5 * 60_000,
   });
 }

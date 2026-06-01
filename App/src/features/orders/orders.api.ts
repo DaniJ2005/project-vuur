@@ -1,7 +1,7 @@
 import { api } from '@/lib/apiClient';
 import type { Order, CreateOrderRequest } from './orders.types';
 
-export const addressesApi = {
+export const ordersApi = {
   list: () =>
     api.get<Order[]>('/api/orders').then(r => r.data),
 

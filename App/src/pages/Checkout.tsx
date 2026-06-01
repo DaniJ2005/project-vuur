@@ -1,9 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
+
 import { useCart } from "../context/CartContext";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { useAddresses } from "../context/AddressContext";
+import { useOrders } from "@/context/OrderContext";
+
 import type { Address } from "@/features/addresses/addresses.types";
+import type { CreateOrderRequest } from "@/features/orders/orders.types";
+
 import { cartHasDisc, cartTotal, type CartItem } from "../types/game";
 import OrderSummary from "../components/OrderSummary";
 
@@ -32,7 +37,10 @@ const SHIPPING_OPTIONS: ShippingOption[] = [
 const KEY_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 // Deterministic fake gamekey (mock — replaces backend assignment).
-const generateFakeKey = (seed: number): string => {
+// Hashes the product id (ObjectId string) into a numeric seed first.
+const generateFakeKey = (id: string): string => {
+  let seed = 0;
+  for (let i = 0; i < id.length; i++) seed = (seed * 31 + id.charCodeAt(i)) | 0;
   let state = seed * 31337;
   const next = () => {
     // Simple xorshift32
@@ -53,6 +61,7 @@ const Checkout: React.FC = () => {
   const { cartItems, removeFromCart } = useCart();
   const { user, isAuthenticated } = useAuth();
   const { addresses, defaultAddress } = useAddresses();
+  const { createOrder } = useOrders();
 
   // Snapshot cart at the moment of payment so the confirmation page survives a clear.
   const [confirmedItems, setConfirmedItems] = useState<CartItem[] | null>(null);
@@ -126,7 +135,7 @@ const Checkout: React.FC = () => {
   const total = cartTotal(activeItems) + shippingPrice;
 
   const [orderNumber] = useState(() => Math.floor(10000 + Math.random() * 90000));
-  const [copiedKeyId, setCopiedKeyId] = useState<number | null>(null);
+  const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = "Afrekenen – VUUR";
@@ -147,16 +156,28 @@ const Checkout: React.FC = () => {
   const prev = () => setStep(stepOrder[stepIndex - 1] ?? step);
 
   const processPayment = () => {
+    // Build the order from the cart + form state. Price/name are snapshotted
+    // server-side, so the client only sends product id + quantity.
+    const order: CreateOrderRequest = {
+      customerEmail: email,
+      customerFirstName: firstName,
+      customerLastName: lastName,
+      items: cartItems.map((i) => ({ productId: i.game.id, quantity: i.quantity })),
+      shippingMethod: hasDisc ? selectedShipping : undefined,
+      shippingAddress: hasDisc
+        ? { street, houseNumber, houseExt, postCode, city, countryCode: country }
+        : null,
+    };
+
     setConfirmedItems(cartItems);
-    
-    // ORDER, Place order in backend
+    createOrder(order); // mutation; OrderContext/hooks invalidate the orders cache on success
 
     setStep("confirmation");
     // Clear cart so navigating away does not re-trigger checkout for the same items
     cartItems.forEach((i) => removeFromCart(i.game.id));
   };
 
-  const copyKey = async (gameId: number, key: string) => {
+  const copyKey = async (gameId: string, key: string) => {
     try {
       await navigator.clipboard.writeText(key);
       setCopiedKeyId(gameId);
