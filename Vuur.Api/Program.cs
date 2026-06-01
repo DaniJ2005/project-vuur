@@ -44,34 +44,29 @@ builder.Services.AddSingleton<RedisContext>();
 
 // Repositories
 builder.Services.AddScoped<UserRepository>();
-builder.Services.AddScoped<UserReadRepository>();
+builder.Services.AddScoped<AddressRepository>();
+builder.Services.AddScoped<WishlistRepository>();
+builder.Services.AddScoped<OrderRepository>();
+builder.Services.AddScoped<PaymentRepository>();
+builder.Services.AddScoped<IProductRepository<Product>, ProductRepository>();
 
+// Read Repositories
+builder.Services.AddScoped<UserReadRepository>();
+builder.Services.AddScoped<AddressReadRepository>();
+builder.Services.AddScoped<WishlistReadRepository>();
+builder.Services.AddScoped<OrderReadRepository>();
+builder.Services.AddScoped<PaymentReadRepository>();
+builder.Services.AddScoped<ProductReadRepository>();
+builder.Services.AddScoped<IProductReadRepository<Product>>(sp => sp.GetRequiredService<ProductReadRepository>());
+
+// Services
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<AuthService>();
 
-// Addresses
-builder.Services.AddScoped<AddressRepository>();
-builder.Services.AddScoped<AddressReadRepository>();
 builder.Services.AddScoped<AddressService>();
-
-// Wishlist
-builder.Services.AddScoped<WishlistRepository>();
-builder.Services.AddScoped<WishlistReadRepository>();
 builder.Services.AddScoped<WishlistService>();
-
-// Orders
-builder.Services.AddScoped<OrderRepository>();
-builder.Services.AddScoped<OrderReadRepository>();
 builder.Services.AddScoped<OrderService>();
-
-// Payments
-builder.Services.AddScoped<PaymentRepository>();
-builder.Services.AddScoped<PaymentReadRepository>();
 builder.Services.AddScoped<PaymentService>();
-
-// Products
-builder.Services.AddScoped<IProductRepository<Product>, ProductRepository>();
-builder.Services.AddScoped<IProductReadRepository<Product>, ProductReadRepository>();
 builder.Services.AddScoped<ProductService>();
 
 

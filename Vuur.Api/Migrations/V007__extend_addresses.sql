@@ -1,10 +1,3 @@
--- Extend addresses with the location fields the frontend address book needs.
--- V003 only stored address/city/country_code; the UI also captures a label,
--- split house number, postcode and a default flag. The recipient name comes
--- from the user account, so it is not duplicated here.
-
--- Rename the column to match the Address.Street property so Dapper's SELECT *
--- maps it correctly (it previously came back as `address`, leaving Street null).
 ALTER TABLE addresses RENAME COLUMN address TO street;
 
 ALTER TABLE addresses
