@@ -1,7 +1,7 @@
 export type GameType = "key" | "disc";
 
 export type CatalogGame = {
-  id: string;
+  id: string;          // MongoDB ObjectId (24-char hex) — sent as productId on orders
   title: string;
   description?: string;
   platform: string;
@@ -17,7 +17,7 @@ export type CatalogGame = {
 };
 
 export type CartGame = {
-  id: string;
+  id: string;          // MongoDB ObjectId (matches CatalogGame.id)
   title: string;
   platform: string;
   price: number;

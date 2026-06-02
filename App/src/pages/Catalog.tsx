@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import GameCard from "../components/GameCard";
 import FilterPill from "../components/FilterPill";
@@ -45,6 +45,11 @@ const Catalog: React.FC = () => {
   const [maxPrice, setMaxPrice]         = useState(999);
   const [sortBy, setSortBy]             = useState<SortKey>("title");
 
+  
+  useEffect(() => {
+    document.title = "Catalogus - VUUR";
+  }, []);
+  
   const games = useMemo(
     () => products.map(toCatalogGame),
     [products]
