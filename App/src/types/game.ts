@@ -44,4 +44,3 @@ export function cartCount(items: CartItem[]): number {
 export function cartHasDisc(items: CartItem[]): boolean {
   return items.some((item) => item.game.type === "disc");
 }
- 
