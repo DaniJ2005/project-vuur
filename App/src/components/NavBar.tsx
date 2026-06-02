@@ -5,6 +5,7 @@ import { useAuth } from "@/features/auth/AuthProvider";
 import { useLogout } from "@/features/auth/auth.hooks";
 import { cartCount } from "../types/game";
 import GamepadIcon from "./icons/GamepadIcon";
+import vuurLogo from "@/assets/images/White_flame.png"
 import SearchIcon from "./icons/SearchIcon";
 import CartIcon from "./icons/CartIcon";
 import HamburgerIcon from "./icons/HamburgerIcon";
@@ -51,8 +52,9 @@ const NavBar: React.FC = () => {
 
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 bg-[#F25B29] rounded flex items-center justify-center shrink-0">
-              <GamepadIcon className="w-5 h-5 text-white" />
+            <div className="w-7 h-7 bg-[#F25B29] rounded-lg flex items-center justify-center shrink-0">
+              {/* <GamepadIcon className="w-5 h-5 text-white" /> */}
+              <img src={vuurLogo} className="rounded-lg"></img>
             </div>
             <span className="text-white font-bold text-xl tracking-tight group-hover:text-[#F25B29] transition-colors duration-200">
               VU<span className="text-[#F25B29]">UR</span>
