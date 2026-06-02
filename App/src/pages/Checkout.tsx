@@ -1,13 +1,21 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
+
 import { useCart } from "../context/CartContext";
 import { useAuth } from "@/features/auth/AuthProvider";
-import { useAddresses, type Address } from "../context/AddressContext";
+import { useAddresses } from "../context/AddressContext";
+import { useOrders } from "@/context/OrderContext";
+
+import type { Address } from "@/features/addresses/addresses.types";
+import type { CreateOrderRequest } from "@/features/orders/orders.types";
+
 import { cartHasDisc, cartTotal, type CartItem } from "../types/game";
 import OrderSummary from "../components/OrderSummary";
 
 const INPUT_CLASS =
   "w-full bg-[#0D0D0D] border border-[#2A2A2A] focus:border-[#F25B29] text-gray-300 placeholder-gray-700 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#F25B29] transition-all";
+const DISABLED_INPUT_CLASS =
+  "w-full bg-[#0D0D0D] border border-[#2A2A2A] focus:border-[#F25B29] text-gray-600 placeholder-gray-700 rounded-lg px-4 py-3 text-sm cursor-not-allowed focus:outline-none focus:ring-1 focus:ring-[#F25B29] transition-all";
 const LABEL_CLASS =
   "text-gray-400 text-xs font-bold uppercase tracking-wider block mb-1.5";
 
@@ -29,7 +37,10 @@ const SHIPPING_OPTIONS: ShippingOption[] = [
 const KEY_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 // Deterministic fake gamekey (mock — replaces backend assignment).
-const generateFakeKey = (seed: number): string => {
+// Hashes the product id (ObjectId string) into a numeric seed first.
+const generateFakeKey = (id: string): string => {
+  let seed = 0;
+  for (let i = 0; i < id.length; i++) seed = (seed * 31 + id.charCodeAt(i)) | 0;
   let state = seed * 31337;
   const next = () => {
     // Simple xorshift32
@@ -50,6 +61,7 @@ const Checkout: React.FC = () => {
   const { cartItems, removeFromCart } = useCart();
   const { user, isAuthenticated } = useAuth();
   const { addresses, defaultAddress } = useAddresses();
+  const { createOrder } = useOrders();
 
   // Snapshot cart at the moment of payment so the confirmation page survives a clear.
   const [confirmedItems, setConfirmedItems] = useState<CartItem[] | null>(null);
@@ -70,7 +82,6 @@ const Checkout: React.FC = () => {
   const [firstName, setFirstName] = useState(user?.firstName ?? "");
   const [lastName, setLastName] = useState(user?.lastName ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
-  const [phone, setPhone] = useState("");
 
   const hasPrefilled = useRef(false);
   useEffect(() => {
@@ -99,16 +110,15 @@ const Checkout: React.FC = () => {
   const [selectedPayment, setSelectedPayment] = useState("ideal");
   const [selectedShipping, setSelectedShipping] = useState("standard");
 
+  // The recipient name comes from the logged-in account (prefilled above), so
+  // applying a saved address only copies its location fields.
   const applyAddress = (a: Address) => {
-    setFirstName(a.firstName);
-    setLastName(a.lastName);
     setStreet(a.street);
     setHouseNumber(a.houseNumber);
     setHouseExt(a.houseExt);
     setPostCode(a.postCode);
     setCity(a.city);
-    setCountry(a.country);
-    if (a.phone) setPhone(a.phone);
+    setCountry(a.countryCode);
   };
 
   // When the picker selection changes, copy fields into the form state so the
@@ -125,10 +135,10 @@ const Checkout: React.FC = () => {
   const total = cartTotal(activeItems) + shippingPrice;
 
   const [orderNumber] = useState(() => Math.floor(10000 + Math.random() * 90000));
-  const [copiedKeyId, setCopiedKeyId] = useState<number | null>(null);
+  const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null);
 
   useEffect(() => {
-    document.title = "Afrekenen – VUUR";
+    document.title = "Afrekenen - VUUR";
   }, []);
 
   useEffect(() => {
@@ -146,13 +156,28 @@ const Checkout: React.FC = () => {
   const prev = () => setStep(stepOrder[stepIndex - 1] ?? step);
 
   const processPayment = () => {
+    // Build the order from the cart + form state. Price/name are snapshotted
+    // server-side, so the client only sends product id + quantity.
+    const order: CreateOrderRequest = {
+      customerEmail: email,
+      customerFirstName: firstName,
+      customerLastName: lastName,
+      items: cartItems.map((i) => ({ productId: i.game.id, quantity: i.quantity })),
+      shippingMethod: hasDisc ? selectedShipping : undefined,
+      shippingAddress: hasDisc
+        ? { street, houseNumber, houseExt, postCode, city, countryCode: country }
+        : null,
+    };
+
     setConfirmedItems(cartItems);
+    createOrder(order); // mutation; OrderContext/hooks invalidate the orders cache on success
+
     setStep("confirmation");
     // Clear cart so navigating away does not re-trigger checkout for the same items
     cartItems.forEach((i) => removeFromCart(i.game.id));
   };
 
-  const copyKey = async (gameId: number, key: string) => {
+  const copyKey = async (gameId: string, key: string) => {
     try {
       await navigator.clipboard.writeText(key);
       setCopiedKeyId(gameId);
@@ -235,17 +260,19 @@ const Checkout: React.FC = () => {
                   </div>
                   <div className="col-span-2">
                     <label className={LABEL_CLASS}>E-mailadres</label>
-                    <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="email@example.com" className={INPUT_CLASS} />
+
+                    {/* Email field disabelen als de user ingelogd is, die hoeft dan niet veranderd te worden door de gebruiker */}
+                    {isAuthenticated ? (
+                        <div className={DISABLED_INPUT_CLASS}>{email}</div>
+                      ) : (
+                        <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="email@example.com" className={INPUT_CLASS} />
+                      )
+                    }
+                    {/* Label bijvoegen als de gebruiker keys in de winkelwagen heeft */}
                     {hasKey && (
                       <p className="text-gray-600 text-xs mt-1">Je keys worden hier naartoe gestuurd</p>
                     )}
                   </div>
-                  {hasDisc && (
-                    <div className="col-span-2">
-                      <label className={LABEL_CLASS}>Telefoonnummer</label>
-                      <input value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" placeholder="+31 6 12345678" className={INPUT_CLASS} />
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -331,7 +358,6 @@ const Checkout: React.FC = () => {
                                 </span>
                               )}
                             </div>
-                            <p className="text-gray-400 text-xs">{a.firstName} {a.lastName}</p>
                             <p className="text-gray-500 text-xs">
                               {a.street} {a.houseNumber}{a.houseExt}, {a.postCode} {a.city}
                             </p>

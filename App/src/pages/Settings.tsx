@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/features/auth/AuthProvider";
-import { useAddresses, type Address, type AddressDraft } from "../context/AddressContext";
+import { useAddresses } from "../context/AddressContext";
+import type { Address, AddressDraft } from "@/features/addresses/addresses.types";
 
 const INPUT_CLASS =
   "w-full bg-[#0D0D0D] border border-[#2A2A2A] focus:border-[#F25B29] text-gray-300 placeholder-gray-700 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#F25B29] transition-all";
@@ -9,15 +10,12 @@ const LABEL_CLASS =
 
 const emptyDraft: AddressDraft = {
   label: "",
-  firstName: "",
-  lastName: "",
   street: "",
   houseNumber: "",
   houseExt: "",
   postCode: "",
   city: "",
-  country: "NL",
-  phone: "",
+  countryCode: "NL",
 };
 
 const AddressForm: React.FC<{
@@ -36,17 +34,6 @@ const AddressForm: React.FC<{
       <div>
         <label className={LABEL_CLASS}>Label</label>
         <input value={draft.label} onChange={(e) => set("label", e.target.value)} placeholder="Thuis, Werk, ..." className={INPUT_CLASS} />
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className={LABEL_CLASS}>Voornaam</label>
-          <input value={draft.firstName} onChange={(e) => set("firstName", e.target.value)} className={INPUT_CLASS} />
-        </div>
-        <div>
-          <label className={LABEL_CLASS}>Achternaam</label>
-          <input value={draft.lastName} onChange={(e) => set("lastName", e.target.value)} className={INPUT_CLASS} />
-        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -72,16 +59,12 @@ const AddressForm: React.FC<{
         </div>
         <div className="col-span-2">
           <label className={LABEL_CLASS}>Land</label>
-          <select value={draft.country} onChange={(e) => set("country", e.target.value)} className={INPUT_CLASS}>
+          <select value={draft.countryCode} onChange={(e) => set("countryCode", e.target.value)} className={INPUT_CLASS}>
             <option value="NL">Nederland</option>
             <option value="BE">België</option>
             <option value="DE">Duitsland</option>
             <option value="FR">Frankrijk</option>
           </select>
-        </div>
-        <div className="col-span-2">
-          <label className={LABEL_CLASS}>Telefoonnummer (optioneel)</label>
-          <input value={draft.phone ?? ""} onChange={(e) => set("phone", e.target.value)} className={INPUT_CLASS} />
         </div>
       </div>
 
@@ -149,8 +132,8 @@ const Settings: React.FC = () => {
   };
 
   const handleUpdate = (id: string) => (draft: AddressDraft) => {
+    // updateAddress persists isDefault too, so no separate setDefault call needed.
     updateAddress(id, draft);
-    if (draft.isDefault) setDefault(id);
     setEditingId(null);
   };
 
@@ -252,11 +235,10 @@ const Settings: React.FC = () => {
                           </span>
                         )}
                       </div>
-                      <p className="text-gray-400 text-sm">{a.firstName} {a.lastName}</p>
                       <p className="text-gray-500 text-sm">
                         {a.street} {a.houseNumber}{a.houseExt}, {a.postCode} {a.city}
                       </p>
-                      <p className="text-gray-500 text-sm">{a.country}{a.phone ? ` · ${a.phone}` : ""}</p>
+                      <p className="text-gray-500 text-sm">{a.countryCode}</p>
                     </div>
                     <div className="flex flex-col gap-2 shrink-0">
                       {!a.isDefault && (

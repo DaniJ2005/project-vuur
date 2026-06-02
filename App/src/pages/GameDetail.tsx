@@ -1,22 +1,24 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { allGames } from "../data/catalogData";
-import { toCatalogGame } from "../types/game";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { useWishlist } from "../context/WishlistContext";
 import GameCard from "../components/GameCard";
 
+import { useProduct, useProducts } from "@/features/products/products.hooks";
+import { toCatalogGame } from "@/features/products/products.mapper";
+
 const GameDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const gameId = Number(id);
-  const game = useMemo(() => allGames.find((g) => g.id === gameId), [gameId]);
+
+  const { data: product, isLoading } = useProduct(id!);
+  const game = product ? toCatalogGame(product) : null;
   const { addToCart, openCart } = useCart();
   const { isAuthenticated } = useAuth();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const [addedFeedback, setAddedFeedback] = useState(false);
 
-  const inWishlist = game ? isInWishlist(game.id) : false;
+  const inWishlist = game ? isInWishlist(Number(game.id)) : false;
 
   useEffect(() => {
     if (!addedFeedback) return;
@@ -28,13 +30,39 @@ const GameDetail: React.FC = () => {
     if (game) document.title = `${game.title} – VUUR`;
   }, [game]);
 
+  const { data: allProducts = [] } = useProducts();
+
   const relatedGames = useMemo(() => {
     if (!game) return [];
-    return allGames
-      .filter((g) => g.id !== game.id && (g.genre === game.genre || g.platform === game.platform))
-      .slice(0, 5);
-  }, [game]);
 
+    return allProducts
+      .map(toCatalogGame)
+      .filter(
+        (g) =>
+          g.id !== game.id &&
+          (
+            g.genre === game.genre ||
+            g.platform === game.platform
+          )
+      )
+      .slice(0, 5);
+  }, [allProducts, game]);
+
+  if (isLoading) {
+    return (
+      <div className="pt-16 min-h-screen bg-[#0D0D0D] flex items-center justify-center">
+        <div className="flex flex-col items-center">
+          <div className="flex gap-2">
+            <span className="w-2 h-2 bg-[#F25B29] rounded-full animate-bounce" />
+            <span className="w-2 h-2 bg-[#F25B29] rounded-full animate-bounce [animation-delay:150ms]" />
+            <span className="w-2 h-2 bg-[#F25B29] rounded-full animate-bounce [animation-delay:300ms]" />
+          </div>
+
+          <p className="text-white mt-4">Game laden...</p>
+        </div>
+      </div>
+    );
+  }
   if (!game) {
     return (
       <div className="pt-16 min-h-screen bg-[#0D0D0D] flex items-center justify-center">
@@ -50,7 +78,7 @@ const GameDetail: React.FC = () => {
   }
 
   const handleAddToCart = () => {
-    addToCart(toCatalogGame(game));
+    addToCart(game);
     openCart();
     setAddedFeedback(true);
   };
@@ -202,7 +230,7 @@ const GameDetail: React.FC = () => {
                 </button>
                 {isAuthenticated && (
                   <button
-                    onClick={() => toggleWishlist(game.id)}
+                    onClick={() => toggleWishlist(Number(game.id))}
                     className={`sm:w-14 h-14 cursor-pointer border rounded-xl flex items-center justify-center transition-all duration-200 ${
                       inWishlist
                         ? "border-[#F25B29]/60 bg-[#F25B29]/10 text-[#F25B29]"

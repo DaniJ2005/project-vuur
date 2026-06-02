@@ -1,23 +1,101 @@
-﻿namespace Vuur.Api.Features.Orders;
+﻿using Vuur.Api.Features.Products;
 
-public class OrderService(OrderRepository repo, OrderReadRepository readRepo)
+namespace Vuur.Api.Features.Orders;
+
+public class OrderService(OrderRepository repo, OrderReadRepository readRepo, ProductReadRepository productReadRepo)
 {
-    public async Task<OrderResponse> CreateAsync(Guid userId, CreateOrderRequest req)
+    public async Task<OrderResponse> CreateAsync(Guid? userId, string? authenticatedEmail, CreateOrderRequest req)
     {
+        // For a logged-in user the account email (from the JWT) is authoritative;
+        // the body's CustomerEmail is only trusted for anonymous (guest) checkout.
+        // First/last name always come from the body — they belong to the delivery
+        // recipient and may differ from the account holder.
+        var customerEmail = authenticatedEmail ?? req.CustomerEmail;
+
+        var productIds = req.Items
+            .Select(i => i.ProductId)
+            .Distinct()
+            .ToList();
+
+        List<Product> products = await productReadRepo.GetByIdsAsync(productIds);
+        var productLookup = products.ToDictionary(p => p.Id);
+
+        // Snapshot each line from the catalogue so the order stays a faithful
+        // historical record even if the product later changes price/name.
+        var items = new List<OrderItem>(req.Items.Count);
+        decimal itemsSubtotal = 0;
+        bool requiresShipping = false;
+
+        foreach (CreateOrderItemRequest item in req.Items)
+        {
+            if (!productLookup.TryGetValue(item.ProductId, out var product))
+            {
+                throw new ArgumentException($"Product '{item.ProductId}' does not exist");
+            }
+
+            itemsSubtotal += product.Price * item.Quantity;
+
+            // A disc is physical, so the whole order needs shipping.
+            if (product.Type == "disc")
+            {
+                requiresShipping = true;
+            }
+
+            items.Add(new OrderItem
+            {
+                ProductId = product.Id,
+                ProductName = product.ProductName,
+                ProductType = product.Type,
+                Platform = product.Platform,
+                UnitPrice = product.Price,
+                Quantity = item.Quantity
+            });
+        }
+
+        if (requiresShipping && req.ShippingAddress is null)
+        {
+            throw new ArgumentException("A shipping address is required for orders containing a physical (disc) item.");
+        }
+
+        decimal shippingPrice = requiresShipping ? ResolveShippingPrice(req.ShippingMethod) : 0;
+
         var order = new Order
         {
             UserId = userId,
-            ProductsId = req.ProductsId,
+            CustomerEmail = customerEmail,
+            CustomerFirstName = req.CustomerFirstName,
+            CustomerLastName = req.CustomerLastName,
+            Status = "pending",
+            RequiresShipping = requiresShipping,
+            // Only carry a shipping method when something actually ships.
+            ShippingMethod = requiresShipping ? req.ShippingMethod : null,
+            ShippingPrice = shippingPrice,
+            // Grand total: line items + shipping.
+            TotalAmount = itemsSubtotal + shippingPrice,
+
+            // Address snapshot — only stored when the order ships (key-only orders
+            // leave these null, matching the chk_orders_shipping constraint in V008).
+            ShipStreet = requiresShipping ? req.ShippingAddress!.Street : null,
+            ShipHouseNumber = requiresShipping ? req.ShippingAddress!.HouseNumber : null,
+            ShipHouseExt = requiresShipping ? req.ShippingAddress!.HouseExt : null,
+            ShipPostCode = requiresShipping ? req.ShippingAddress!.PostCode : null,
+            ShipCity = requiresShipping ? req.ShippingAddress!.City : null,
+            ShipCountryCode = requiresShipping ? req.ShippingAddress!.CountryCode : null
         };
 
-        var created = await repo.CreateAsync(order);
-        return ToResponse(created);
+        // Persists the order and its line items together; returns the order with
+        // its generated id/timestamps.
+        Order created = await repo.CreateAsync(order, items);
+
+        // Read the order back so the response carries the persisted item ids.
+        var responses = await HydrateAsync([created]);
+        return responses.Single();
     }
 
     public async Task<IEnumerable<OrderResponse>> GetByUserIdAsync(Guid userId)
     {
-        var orders = await readRepo.GetByUserIdAsync(userId);
-        return orders.Select(ToResponse);
+        var orders = (await readRepo.GetByUserIdAsync(userId)).ToList();
+        return await HydrateAsync(orders);
     }
 
     public async Task<(bool success, string? error, OrderResponse? response)> GetByIdAsync(Guid id, Guid userId, bool isAdmin)
@@ -25,15 +103,72 @@ public class OrderService(OrderRepository repo, OrderReadRepository readRepo)
         var order = await readRepo.GetByIdAsync(id);
         if (order is null) return (false, "Order not found.", null);
         if (!isAdmin && order.UserId != userId) return (false, "Access denied.", null);
-        return (true, null, ToResponse(order));
+
+        var responses = await HydrateAsync([order]);
+        return (true, null, responses.Single());
     }
 
     public async Task<IEnumerable<OrderResponse>> GetAllAsync()
     {
-        var orders = await readRepo.GetAllAsync();
-        return orders.Select(ToResponse);
+        var orders = (await readRepo.GetAllAsync()).ToList();
+        return await HydrateAsync(orders);
     }
 
-    private static OrderResponse ToResponse(Order o) =>
-        new(o.Id, o.UserId, o.ProductsId, o.CreatedAt, o.UpdatedAt);
+    /// <summary>
+    /// Loads the line items for the given orders in one batch query (no N+1) and
+    /// maps everything onto <see cref="OrderResponse"/>.
+    /// </summary>
+    private async Task<IEnumerable<OrderResponse>> HydrateAsync(IReadOnlyList<Order> orders)
+    {
+        if (orders.Count == 0) return [];
+
+        var orderIds = orders.Select(o => o.Id).ToList();
+        var items = await readRepo.GetItemsByOrderIdsAsync(orderIds);
+        var itemsByOrder = items.ToLookup(i => i.OrderId);
+
+        return orders.Select(o => ToResponse(o, itemsByOrder[o.Id])).ToList();
+    }
+
+    /// <summary>
+    /// Flat shipping rate per method. Placeholder figures — replace with real
+    /// carrier pricing when it's decided. Only applied to orders that ship a disc.
+    /// </summary>
+    private static decimal ResolveShippingPrice(string? method) => method?.ToLowerInvariant() switch
+    {
+        "express" => 9.99m,
+        "standard" => 4.99m,
+        _ => 4.99m // unknown/unspecified → standard
+    };
+
+    private static OrderResponse ToResponse(Order o, IEnumerable<OrderItem> items) =>
+        new(
+            o.Id,
+            o.UserId,
+            o.CustomerEmail,
+            o.CustomerFirstName,
+            o.CustomerLastName,
+            o.Status,
+            o.RequiresShipping,
+            o.ShippingMethod,
+            o.ShippingPrice,
+            o.TotalAmount,
+            o.RequiresShipping
+                ? new ShippingAddressResponse(
+                    o.ShipStreet!,
+                    o.ShipHouseNumber!,
+                    o.ShipHouseExt!,
+                    o.ShipPostCode!,
+                    o.ShipCity!,
+                    o.ShipCountryCode!)
+                : null,
+            items.Select(i => new OrderItemResponse(
+                i.Id,
+                i.ProductId,
+                i.ProductName,
+                i.ProductType,
+                i.Platform,
+                i.UnitPrice,
+                i.Quantity)).ToList(),
+            o.CreatedAt,
+            o.UpdatedAt);
 }

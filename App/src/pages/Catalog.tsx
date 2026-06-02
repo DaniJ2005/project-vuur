@@ -1,13 +1,10 @@
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import GameCard from "../components/GameCard";
 import FilterPill from "../components/FilterPill";
 import FilterButton from "../components/FilterButton";
-import type { CatalogGame } from "../types/game";
-
-type Props = {
-  games: CatalogGame[];
-};
+import { useProducts } from "@/features/products/products.hooks";
+import { toCatalogGame } from "@/features/products/products.mapper";
 
 type SortKey = "title" | "price_asc" | "price_desc" | "rating" | "discount";
 
@@ -35,9 +32,11 @@ const TYPE_OPTIONS: { value: TypeFilter; label: string }[] = [
   { value: "disc", label: "Fysieke Disc" },
 ];
 
-// ── Component ──────────────────────────────────────────────────────────────────
+// ── Component
 
-const Catalog: React.FC<Props> = ({ games }) => {
+const Catalog: React.FC = () => {
+  const { data: products = [], isLoading } = useProducts();
+
   const [searchParams] = useSearchParams();
   const [search, setSearch]             = useState(searchParams.get("q") ?? "");
   const [selectedType, setSelectedType] = useState<TypeFilter>("all");
@@ -45,6 +44,16 @@ const Catalog: React.FC<Props> = ({ games }) => {
   const [selectedGenre, setSelectedGenre]       = useState("Alle");
   const [maxPrice, setMaxPrice]         = useState(999);
   const [sortBy, setSortBy]             = useState<SortKey>("title");
+
+  
+  useEffect(() => {
+    document.title = "Catalogus - VUUR";
+  }, []);
+  
+  const games = useMemo(
+    () => products.map(toCatalogGame),
+    [products]
+  );
 
   const allPlatforms = useMemo(
     () => ["Alle", ...Array.from(new Set(games.map((g) => g.platform))).sort()],
@@ -86,6 +95,21 @@ const Catalog: React.FC<Props> = ({ games }) => {
     search || selectedType !== "all" || selectedPlatform !== "Alle" ||
     selectedGenre !== "Alle" || maxPrice !== 999;
 
+  if (isLoading) {
+  return (
+    <div className="pt-16 min-h-screen bg-[#0D0D0D] flex items-center justify-center">
+      <div className="flex flex-col items-center">
+        <div className="flex gap-2">
+          <span className="w-2 h-2 bg-[#F25B29] rounded-full animate-bounce" />
+          <span className="w-2 h-2 bg-[#F25B29] rounded-full animate-bounce [animation-delay:150ms]" />
+          <span className="w-2 h-2 bg-[#F25B29] rounded-full animate-bounce [animation-delay:300ms]" />
+        </div>
+
+        <p className="text-white mt-4">Producten laden...</p>
+      </div>
+    </div>
+  );
+}
   return (
     <div className="pt-16 min-h-screen bg-[#0D0D0D]">
 
