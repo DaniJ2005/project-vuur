@@ -135,5 +135,3 @@ id_ed25519
 # AI documents
 #############################
 AGENTS.md
-
-App/package-lock.json
