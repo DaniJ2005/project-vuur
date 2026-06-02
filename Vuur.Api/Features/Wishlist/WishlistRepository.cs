@@ -13,7 +13,15 @@ public class WishlistRepository(RedisContext redis)
 
         var existing = await db.HashGetAsync(hashKey, productsId);
         if (existing.HasValue)
-            return WishlistRedisValue.Parse(userId, productsId, existing);
+        {
+            var existingItem = WishlistRedisValue.Parse(userId, productsId, existing);
+            existingItem.Amount++;
+            existingItem.UpdatedAt = DateTime.UtcNow;
+
+            await db.HashSetAsync(hashKey, productsId, WishlistRedisValue.Format(existingItem));
+
+            return existingItem;
+        }
 
         var now = DateTime.UtcNow;
         var item = new WishlistItem
@@ -34,10 +42,34 @@ public class WishlistRepository(RedisContext redis)
         if (!added)
         {
             existing = await db.HashGetAsync(hashKey, productsId);
-            return WishlistRedisValue.Parse(userId, productsId, existing);
+            var existingItem = WishlistRedisValue.Parse(userId, productsId, existing);
+            existingItem.Amount++;
+            existingItem.UpdatedAt = DateTime.UtcNow;
+
+            await db.HashSetAsync(hashKey, productsId, WishlistRedisValue.Format(existingItem));
+
+            return existingItem;
         }
 
         await db.SortedSetAddAsync(orderedKey, productsId, now.Ticks);
+
+        return item;
+    }
+
+    public async Task<WishlistItem?> UpdateAmountAsync(Guid userId, string productsId, int amount)
+    {
+        var db = redis.Db;
+        var hashKey = WishlistRedisKeys.Items(userId);
+        var existing = await db.HashGetAsync(hashKey, productsId);
+
+        if (!existing.HasValue)
+            return null;
+
+        var item = WishlistRedisValue.Parse(userId, productsId, existing);
+        item.Amount = amount;
+        item.UpdatedAt = DateTime.UtcNow;
+
+        await db.HashSetAsync(hashKey, productsId, WishlistRedisValue.Format(item));
 
         return item;
     }

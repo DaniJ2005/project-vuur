@@ -12,7 +12,8 @@ internal static class WishlistRedisValue
             Separator,
             item.Id.ToString("D"),
             item.CreatedAt.ToUniversalTime().Ticks.ToString(CultureInfo.InvariantCulture),
-            item.UpdatedAt.ToUniversalTime().Ticks.ToString(CultureInfo.InvariantCulture));
+            item.UpdatedAt.ToUniversalTime().Ticks.ToString(CultureInfo.InvariantCulture),
+            item.Amount.ToString(CultureInfo.InvariantCulture));
 
     public static WishlistItem Parse(Guid userId, RedisValue productsId, RedisValue value)
     {
@@ -24,6 +25,9 @@ internal static class WishlistRedisValue
             Id = Guid.Parse(parts[0]),
             UserId = userId,
             ProductsId = (string)productsId!,
+            Amount = parts.Length > 3
+                ? int.Parse(parts[3], CultureInfo.InvariantCulture)
+                : 1,
             CreatedAt = createdAt,
             UpdatedAt = parts.Length > 2
                 ? new DateTime(long.Parse(parts[2], CultureInfo.InvariantCulture), DateTimeKind.Utc)

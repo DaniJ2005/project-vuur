@@ -36,6 +36,17 @@ public class WishlistController(WishlistService service) : ControllerBase
         return CreatedAtAction(nameof(GetAll), new { }, item);
     }
 
+    /// <summary>Update the amount for a product in the wishlist.</summary>
+    [HttpPut("{productsId}/amount")]
+    [ProducesResponseType(typeof(WishlistItemResponse), 200)]
+    [ProducesResponseType(typeof(object), 404)]
+    public async Task<IActionResult> UpdateAmount(string productsId, [FromBody] WishlistUpdateAmountRequest req)
+    {
+        var (success, error, item) = await service.UpdateAmountAsync(CurrentUserId, productsId, req.Amount);
+        if (!success) return NotFound(new { error });
+        return Ok(item);
+    }
+
     /// <summary>Remove a product from the wishlist.</summary>
     [HttpDelete("{productsId}")]
     [ProducesResponseType(204)]
