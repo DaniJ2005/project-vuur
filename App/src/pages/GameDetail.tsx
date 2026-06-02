@@ -18,7 +18,7 @@ const GameDetail: React.FC = () => {
   const { isInWishlist, toggleWishlist } = useWishlist();
   const [addedFeedback, setAddedFeedback] = useState(false);
 
-  const inWishlist = game ? isInWishlist(Number(game.id)) : false;
+  const inWishlist = game ? isInWishlist(game.id) : false;
 
   useEffect(() => {
     if (!addedFeedback) return;
@@ -230,7 +230,7 @@ const GameDetail: React.FC = () => {
                 </button>
                 {isAuthenticated && (
                   <button
-                    onClick={() => toggleWishlist(Number(game.id))}
+                    onClick={() => toggleWishlist(game.id)}
                     className={`sm:w-14 h-14 cursor-pointer border rounded-xl flex items-center justify-center transition-all duration-200 ${
                       inWishlist
                         ? "border-[#F25B29]/60 bg-[#F25B29]/10 text-[#F25B29]"
