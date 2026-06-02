@@ -1,39 +1,55 @@
-﻿using Dapper;
+using StackExchange.Redis;
 using Vuur.Api.Data;
 
 namespace Vuur.Api.Features.Users;
 
-public class WishlistRepository(PostgresContext db)
+public class WishlistRepository(RedisContext redis)
 {
     public async Task<WishlistItem> AddAsync(Guid userId, string productsId)
     {
-        const string sql = """
-            INSERT INTO wishlist (id, user_id, products_id, created_at, updated_at)
-            VALUES (@Id, @UserId, @ProductsId, @CreatedAt, @UpdatedAt)
-            ON CONFLICT (user_id, products_id) DO NOTHING
-            RETURNING *;
-            """;
+        var db = redis.Db;
+        var hashKey = WishlistRedisKeys.Items(userId);
+        var orderedKey = WishlistRedisKeys.OrderedItems(userId);
 
-        using var conn = db.CreateConnection();
-        return await conn.QuerySingleAsync<WishlistItem>(sql, new
+        var existing = await db.HashGetAsync(hashKey, productsId);
+        if (existing.HasValue)
+            return WishlistRedisValue.Parse(userId, productsId, existing);
+
+        var now = DateTime.UtcNow;
+        var item = new WishlistItem
         {
             Id = Guid.NewGuid(),
             UserId = userId,
             ProductsId = productsId,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow,
-        });
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
+
+        var added = await db.HashSetAsync(
+            hashKey,
+            productsId,
+            WishlistRedisValue.Format(item),
+            When.NotExists);
+
+        if (!added)
+        {
+            existing = await db.HashGetAsync(hashKey, productsId);
+            return WishlistRedisValue.Parse(userId, productsId, existing);
+        }
+
+        await db.SortedSetAddAsync(orderedKey, productsId, now.Ticks);
+
+        return item;
     }
 
     public async Task<bool> RemoveAsync(Guid userId, string productsId)
     {
-        const string sql = """
-            DELETE FROM wishlist
-            WHERE user_id = @UserId AND products_id = @ProductsId;
-            """;
+        var db = redis.Db;
+        var removed = await db.HashDeleteAsync(WishlistRedisKeys.Items(userId), productsId);
 
-        using var conn = db.CreateConnection();
-        var rows = await conn.ExecuteAsync(sql, new { UserId = userId, ProductsId = productsId });
-        return rows > 0;
+        if (removed)
+            await db.SortedSetRemoveAsync(WishlistRedisKeys.OrderedItems(userId), productsId);
+
+        return removed;
     }
 }

@@ -5,7 +5,7 @@ namespace Vuur.Api.Data;
 public class RedisContext
 {
     private readonly IConnectionMultiplexer _connection;
-    private IDatabase Db => _connection.GetDatabase();
+    public IDatabase Db => _connection.GetDatabase();
 
     private static readonly TimeSpan RefreshTokenTtl = TimeSpan.FromDays(7);
 
