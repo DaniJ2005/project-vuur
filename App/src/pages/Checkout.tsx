@@ -138,7 +138,7 @@ const Checkout: React.FC = () => {
   const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null);
 
   useEffect(() => {
-    document.title = "Afrekenen – VUUR";
+    document.title = "Afrekenen - VUUR";
   }, []);
 
   useEffect(() => {

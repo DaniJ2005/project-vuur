@@ -4,7 +4,6 @@ import { useCart } from "../context/CartContext";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { useLogout } from "@/features/auth/auth.hooks";
 import { cartCount } from "../types/game";
-import GamepadIcon from "./icons/GamepadIcon";
 import vuurLogo from "@/assets/images/White_flame.png"
 import SearchIcon from "./icons/SearchIcon";
 import CartIcon from "./icons/CartIcon";
