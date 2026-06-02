@@ -10,6 +10,7 @@ import { toCatalogGame } from "@/features/products/products.mapper";
 
 const GameDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+
   const { data: product, isLoading } = useProduct(id!);
   const game = product ? toCatalogGame(product) : null;
   const { addToCart, openCart } = useCart();

@@ -1,4 +1,5 @@
 import { useAuth } from "@/features/auth/AuthProvider";
+import { useEffect } from "react";
 import GameCard from "../components/GameCard";
 import NewReleaseRow from "../components/NewReleaseRow";
 import UspCard from "../components/UspCard";
@@ -11,6 +12,10 @@ function Home() {
   const newReleases = allGames.filter((g) => g.isNew);
 
   const { isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    document.title = "Home - VUUR";
+  }, []);
   
 
   return (

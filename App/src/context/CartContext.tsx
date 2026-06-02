@@ -8,8 +8,8 @@ type CartContextValue = {
   openCart: () => void;
   closeCart: () => void;
   addToCart: (game: CartGame) => void;
-  changeQty: (gameId: number, delta: number) => void;
-  removeFromCart: (gameId: number) => void;
+  changeQty: (gameId: string, delta: number) => void;
+  removeFromCart: (gameId: string) => void;
 };
 
 const CartContext = createContext<CartContextValue | undefined>(undefined);
@@ -33,7 +33,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const changeQty = useCallback((gameId: number, delta: number) => {
+  const changeQty = useCallback((gameId: string, delta: number) => {
     setCartItems((prev) =>
       prev
         .map((i) => (i.game.id === gameId ? { ...i, quantity: i.quantity + delta } : i))
@@ -41,7 +41,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
-  const removeFromCart = useCallback((gameId: number) => {
+  const removeFromCart = useCallback((gameId: string) => {
     setCartItems((prev) => prev.filter((i) => i.game.id !== gameId));
   }, []);
 
