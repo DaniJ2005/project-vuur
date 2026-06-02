@@ -9,6 +9,7 @@ import Checkout from "./pages/Checkout";
 import Orders from "./pages/Orders";
 import Wishlist from "./pages/Wishlist";
 import Settings from "./pages/Settings";
+import AdminDashboard from "./pages/AdminDashboard";
 import Footer from "./components/Footer";
 import NavBar from "./components/NavBar";
 import CartSidebar from "./components/CartSidebar";
@@ -29,6 +30,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/checkout" element={<Checkout />} />
+          <Route path="/admin" element={<AdminDashboard />} />
 
           {/* Auth Protected Routes */}
           <Route element={<ProtectedRoute />}>

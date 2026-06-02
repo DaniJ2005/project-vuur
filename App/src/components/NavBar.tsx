@@ -17,6 +17,7 @@ const NAV_LINKS = [
   { href: "/catalog", label: "Catalogus" },
   { href: "/deals", label: "Deals" },
   { href: "/library", label: "Mijn Library" },
+  { href: "/admin", label: "Admin" },
 ] as const;
 
 // ── Component ──────────────────────────────────────────────────────────────────

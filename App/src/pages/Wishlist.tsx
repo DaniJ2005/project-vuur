@@ -19,7 +19,7 @@ const Wishlist: React.FC = () => {
     [wishlist]
   );
 
-  const moveToCart = (gameId: number) => {
+  const moveToCart = (gameId: string) => {
     const game = allGames.find((g) => g.id === gameId);
     if (!game) return;
     addToCart(toCatalogGame(game));

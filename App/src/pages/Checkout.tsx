@@ -29,8 +29,9 @@ const SHIPPING_OPTIONS: ShippingOption[] = [
 const KEY_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 // Deterministic fake gamekey (mock — replaces backend assignment).
-const generateFakeKey = (seed: number): string => {
-  let state = seed * 31337;
+const generateFakeKey = (seed: string): string => {
+  const numericSeed = Array.from(seed).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  let state = numericSeed * 31337;
   const next = () => {
     // Simple xorshift32
     state ^= state << 13;
@@ -125,7 +126,7 @@ const Checkout: React.FC = () => {
   const total = cartTotal(activeItems) + shippingPrice;
 
   const [orderNumber] = useState(() => Math.floor(10000 + Math.random() * 90000));
-  const [copiedKeyId, setCopiedKeyId] = useState<number | null>(null);
+  const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = "Afrekenen – VUUR";
@@ -152,7 +153,7 @@ const Checkout: React.FC = () => {
     cartItems.forEach((i) => removeFromCart(i.game.id));
   };
 
-  const copyKey = async (gameId: number, key: string) => {
+  const copyKey = async (gameId: string, key: string) => {
     try {
       await navigator.clipboard.writeText(key);
       setCopiedKeyId(gameId);
