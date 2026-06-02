@@ -3,12 +3,7 @@ import { createContext, useCallback, useContext, useState } from "react";
 
 type WishlistContextValue = {
   wishlist: string[];
-  wishlist: string[];
   count: number;
-  isInWishlist: (id: string) => boolean;
-  addToWishlist: (id: string) => void;
-  removeFromWishlist: (id: string) => void;
-  toggleWishlist: (id: string) => void;
   isInWishlist: (id: string) => boolean;
   addToWishlist: (id: string) => void;
   removeFromWishlist: (id: string) => void;
@@ -29,22 +24,17 @@ const INITIAL_WISHLIST: string[] = [
 
 export function WishlistProvider({ children }: { children: React.ReactNode }) {
   const [wishlist, setWishlist] = useState<string[]>(INITIAL_WISHLIST);
-  const [wishlist, setWishlist] = useState<string[]>(INITIAL_WISHLIST);
 
   const isInWishlist = useCallback((id: string) => wishlist.includes(id), [wishlist]);
-  const isInWishlist = useCallback((id: string) => wishlist.includes(id), [wishlist]);
 
-  const addToWishlist = useCallback((id: string) => {
   const addToWishlist = useCallback((id: string) => {
     setWishlist((prev) => (prev.includes(id) ? prev : [...prev, id]));
   }, []);
 
   const removeFromWishlist = useCallback((id: string) => {
-  const removeFromWishlist = useCallback((id: string) => {
     setWishlist((prev) => prev.filter((x) => x !== id));
   }, []);
 
-  const toggleWishlist = useCallback((id: string) => {
   const toggleWishlist = useCallback((id: string) => {
     setWishlist((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }, []);
