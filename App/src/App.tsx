@@ -15,6 +15,7 @@ import NavBar from "./components/NavBar";
 import CartSidebar from "./components/CartSidebar";
 import ScrollToTop from "./components/ScrollToTop";
 import { ProtectedRoute } from "@/features/auth/ProtectedRoute";
+import { AdminRoute } from "@/features/auth/AdminRoute";
 
 function App() {
   return (
@@ -30,7 +31,9 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/checkout" element={<Checkout />} />
-          <Route path="/admin" element={<AdminDashboard />} />
+          <Route element={<AdminRoute />}>
+            <Route path="/admin" element={<AdminDashboard />} />
+          </Route>
 
           {/* Auth Protected Routes */}
           <Route element={<ProtectedRoute />}>

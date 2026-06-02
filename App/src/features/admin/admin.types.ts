@@ -15,6 +15,29 @@ export interface AdminRefreshToken {
   expiresAt: string | null;
 }
 
+export interface AdminAnalyticsTopProduct {
+  productId: string;
+  productName: string;
+  orderCount: number;
+}
+
+export interface AdminAnalytics {
+  totalOrders: number;
+  totalPayments: number;
+  totalWishlistItems: number;
+  totalUsers: number;
+  totalProducts: number;
+  totalDistinctOrderedProducts: number;
+  totalPageViews: number;
+  topProducts: AdminAnalyticsTopProduct[];
+}
+
+export interface AdminActivityEntry {
+  id: string;
+  timestamp: string;
+  description: string;
+}
+
 export interface AdminDataSnapshot {
   postgresTables: AdminTable[];
   mongoProducts: Product[];

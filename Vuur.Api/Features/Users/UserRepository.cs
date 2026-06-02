@@ -7,11 +7,16 @@ public class UserRepository(PostgresContext db)
 {
     public async Task<User> CreateAsync(User user)
     {
-        const string sql = """
-        INSERT INTO users (id, first_name, last_name, email, password_hash, role_id, created_at, updated_at)
-        VALUES (@Id, @FirstName, @LastName, @Email, @PasswordHash, @RoleId, @CreatedAt, @UpdatedAt)
-        RETURNING *;
-        """;
+                const string sql = """
+                WITH inserted AS (
+                    INSERT INTO users (id, first_name, last_name, email, password_hash, role_id, created_at, updated_at)
+                    VALUES (@Id, @FirstName, @LastName, @Email, @PasswordHash, @RoleId, @CreatedAt, @UpdatedAt)
+                    RETURNING *
+                )
+                SELECT i.*, r.role_name AS role_name
+                FROM inserted i
+                JOIN roles r ON r.id = i.role_id;
+                """;
 
         user.Id = Guid.NewGuid();
         user.CreatedAt = DateTime.UtcNow;

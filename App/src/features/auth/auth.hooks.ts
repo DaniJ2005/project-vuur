@@ -32,6 +32,10 @@ export function useLogout() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: authApi.logout,
-    onSettled: () => qc.clear(),
+    onSettled: () => {
+      qc.clear();
+      // Refresh page to ensure UI updates properly
+      window.location.href = '/';
+    },
   });
 }

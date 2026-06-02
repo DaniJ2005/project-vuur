@@ -28,12 +28,44 @@ export function useAdminRefreshTokens() {
   });
 }
 
+export function useAdminAnalytics() {
+  return useQuery({
+    queryKey: [...adminKeys.postgres, "analytics"],
+    queryFn: adminApi.getAnalytics,
+  });
+}
+
+export function useAdminActivityLog() {
+  return useQuery({
+    queryKey: [...adminKeys.postgres, "activity"],
+    queryFn: adminApi.getActivityLog,
+  });
+}
+
 export function useDeleteAdminPostgresRow() {
   const qc = useQueryClient();
 
   return useMutation({
     mutationFn: ({ tableName, id }: { tableName: string; id: string }) =>
       adminApi.deletePostgresRow(tableName, id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: adminKeys.postgres }),
+  });
+}
+
+export function useCreateAdminPostgresRow() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ tableName, payload }: { tableName: string; payload: Record<string, any> }) =>
+      adminApi.createPostgresRow(tableName, payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: adminKeys.postgres }),
+  });
+}
+
+export function useUpdateAdminPostgresRow() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ tableName, id, payload }: { tableName: string; id: string; payload: Record<string, any> }) =>
+      adminApi.updatePostgresRow(tableName, id, payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: adminKeys.postgres }),
   });
 }

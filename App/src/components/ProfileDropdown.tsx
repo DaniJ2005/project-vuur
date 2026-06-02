@@ -81,7 +81,7 @@ const ProfileDropdown: React.FC = () => {
 
           {/* Menu items */}
           <div className="py-1">
-            {MENU_ITEMS.map(({ to, label }) => (
+            {MENU_ITEMS.filter((item) => item.to !== "/admin" || user.role === "admin").map(({ to, label }) => (
               <Link
                 key={to}
                 to={to}
