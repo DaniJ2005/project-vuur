@@ -17,7 +17,7 @@ public class OrderService(OrderRepository repo, OrderReadRepository readRepo, Pr
             .Distinct()
             .ToList();
 
-        List<Product> products = await productReadRepo.GetByIdsAsync(productIds);
+        IReadOnlyList<Product> products = await productReadRepo.GetByIdsAsync(productIds);
         var productLookup = products.ToDictionary(p => p.Id);
 
         // Snapshot each line from the catalogue so the order stays a faithful

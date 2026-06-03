@@ -16,7 +16,7 @@ var builder = WebApplication.CreateBuilder(args);
 if (builder.Environment.IsDevelopment())
 {
     var envPath = Path.Combine(Directory.GetCurrentDirectory(), "..", ".env");
-    DotNetEnv.Env.Load(envPath);
+        DotNetEnv.Env.Load(envPath);
     // Push loaded env vars into IConfiguration so contexts can read them
     builder.Configuration.AddEnvironmentVariables();
 }
@@ -40,13 +40,18 @@ builder.Services.AddSingleton<MongoContext>();
 // Redis
 builder.Services.AddSingleton<RedisContext>();
 
+// ── Products ──────────────────────────────────────────────────────────────────
+builder.Services.AddSingleton<IProductReadRepository, ProductReadRepository>();
+builder.Services.AddSingleton<IProductRepository,     ProductRepository>();
+
 // Repositories
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<AddressRepository>();
 builder.Services.AddScoped<WishlistRepository>();
 builder.Services.AddScoped<OrderRepository>();
 builder.Services.AddScoped<PaymentRepository>();
-builder.Services.AddScoped<IProductRepository<Product>, ProductRepository>();
+builder.Services.AddSingleton<ProductCache>();
+
 
 // Read Repositories
 builder.Services.AddScoped<UserReadRepository>();
@@ -55,7 +60,6 @@ builder.Services.AddScoped<WishlistReadRepository>();
 builder.Services.AddScoped<OrderReadRepository>();
 builder.Services.AddScoped<PaymentReadRepository>();
 builder.Services.AddScoped<ProductReadRepository>();
-builder.Services.AddScoped<IProductReadRepository<Product>>(sp => sp.GetRequiredService<ProductReadRepository>());
 
 // Services
 builder.Services.AddScoped<TokenService>();
