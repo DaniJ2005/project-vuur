@@ -92,6 +92,11 @@ const Checkout: React.FC = () => {
     hasPrefilled.current = true;
   }, [user]);
 
+  // De backend (POST /api/orders) weigert een order zonder naam + e-mail, dus
+  // blokkeer de "details" stap totdat deze gevuld zijn.
+  const detailsValid =
+    firstName.trim() !== "" && lastName.trim() !== "" && email.trim() !== "";
+
   // Address
   const [street, setStreet] = useState("");
   const [houseNumber, setHouseNumber] = useState("");
@@ -137,6 +142,10 @@ const Checkout: React.FC = () => {
   const [orderNumber] = useState(() => Math.floor(10000 + Math.random() * 90000));
   const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null);
 
+  // Order plaatsen is async; toon de bevestiging pas als de POST is geslaagd.
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
+
   useEffect(() => {
     document.title = "Afrekenen - VUUR";
   }, []);
@@ -155,7 +164,7 @@ const Checkout: React.FC = () => {
   const next = () => setStep(stepOrder[stepIndex + 1] ?? step);
   const prev = () => setStep(stepOrder[stepIndex - 1] ?? step);
 
-  const processPayment = () => {
+  const processPayment = async () => {
     // Build the order from the cart + form state. Price/name are snapshotted
     // server-side, so the client only sends product id + quantity.
     const order: CreateOrderRequest = {
@@ -169,12 +178,23 @@ const Checkout: React.FC = () => {
         : null,
     };
 
-    setConfirmedItems(cartItems);
-    createOrder(order); // mutation; OrderContext/hooks invalidate the orders cache on success
-
-    setStep("confirmation");
-    // Clear cart so navigating away does not re-trigger checkout for the same items
-    cartItems.forEach((i) => removeFromCart(i.game.id));
+    setIsPlacingOrder(true);
+    setOrderError(null);
+    try {
+      // Wacht op de backend; pas bij succes snapshotten we de cart, tonen we de
+      // bevestiging en legen we de winkelwagen.
+      await createOrder(order); // OrderContext/hooks invalidate the orders cache on success
+      setConfirmedItems(cartItems);
+      setStep("confirmation");
+      // Clear cart so navigating away does not re-trigger checkout for the same items
+      cartItems.forEach((i) => removeFromCart(i.game.id));
+    } catch {
+      setOrderError(
+        "Er ging iets mis bij het plaatsen van je bestelling. Controleer je gegevens en probeer opnieuw.",
+      );
+    } finally {
+      setIsPlacingOrder(false);
+    }
   };
 
   const copyKey = async (gameId: string, key: string) => {
@@ -278,7 +298,8 @@ const Checkout: React.FC = () => {
 
               <button
                 onClick={next}
-                className="w-full cursor-pointer bg-[#F25B29] hover:bg-[#d94e22] text-white font-black py-4 rounded-xl text-lg transition-all hover:shadow-[0_0_20px_rgba(242,91,41,0.3)] active:scale-95 flex items-center justify-center gap-2"
+                disabled={!detailsValid}
+                className="w-full cursor-pointer bg-[#F25B29] hover:bg-[#d94e22] text-white font-black py-4 rounded-xl text-lg transition-all hover:shadow-[0_0_20px_rgba(242,91,41,0.3)] active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:bg-[#F25B29]"
               >
                 Doorgaan
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -522,18 +543,26 @@ const Checkout: React.FC = () => {
                 </div>
               </div>
 
+              {orderError && (
+                <div className="bg-red-500/5 border border-red-500/30 rounded-xl p-4">
+                  <p className="text-red-400 text-sm">{orderError}</p>
+                </div>
+              )}
+
               <div className="flex gap-3">
                 <button
                   onClick={prev}
-                  className="border border-[#2A2A2A] cursor-pointer hover:border-[#F25B29]/30 text-gray-400 hover:text-white px-6 py-4 rounded-xl font-bold transition-all"
+                  disabled={isPlacingOrder}
+                  className="border border-[#2A2A2A] cursor-pointer hover:border-[#F25B29]/30 text-gray-400 hover:text-white px-6 py-4 rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   ← Terug
                 </button>
                 <button
                   onClick={processPayment}
-                  className="flex-1 cursor-pointer bg-[#F25B29] hover:bg-[#d94e22] text-white font-black py-4 rounded-xl text-lg transition-all hover:shadow-[0_0_20px_rgba(242,91,41,0.3)] active:scale-95"
+                  disabled={isPlacingOrder}
+                  className="flex-1 cursor-pointer bg-[#F25B29] hover:bg-[#d94e22] text-white font-black py-4 rounded-xl text-lg transition-all hover:shadow-[0_0_20px_rgba(242,91,41,0.3)] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:bg-[#F25B29] disabled:active:scale-100"
                 >
-                  €{total.toFixed(2)} Betalen
+                  {isPlacingOrder ? "Bezig met betalen…" : `€${total.toFixed(2)} Betalen`}
                 </button>
               </div>
             </div>
@@ -602,28 +631,37 @@ const Checkout: React.FC = () => {
                 <h3 className="text-white font-bold text-center mb-2">Jouw game keys</h3>
                 {activeItems
                   .filter((item) => item.game.type === "key")
-                  .map((item) => {
-                    const key = generateFakeKey(item.game.id);
-                    const copied = copiedKeyId === item.game.id;
-                    return (
-                      <div key={item.game.id} className="bg-[#111] border border-emerald-500/20 rounded-xl p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <p className="text-white font-bold">{item.game.title}</p>
-                          <span className="text-blue-400 text-xs">KEY</span>
+                  .flatMap((item) =>
+                    // Eén key per stuk: een game met quantity 2 levert 2 keys op.
+                    Array.from({ length: item.quantity }, (_, i) => {
+                      const keyId = `${item.game.id}-${i}`;
+                      const key = generateFakeKey(keyId);
+                      const copied = copiedKeyId === keyId;
+                      return (
+                        <div key={keyId} className="bg-[#111] border border-emerald-500/20 rounded-xl p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <p className="text-white font-bold">
+                              {item.game.title}
+                              {item.quantity > 1 && (
+                                <span className="text-gray-500 font-normal"> · key {i + 1} van {item.quantity}</span>
+                              )}
+                            </p>
+                            <span className="text-blue-400 text-xs">KEY</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => copyKey(keyId, key)}
+                            className="w-full bg-[#0D0D0D] border border-[#2A2A2A] hover:border-[#F25B29]/50 cursor-pointer rounded-lg px-4 py-3 font-mono text-[#F25B29] text-sm tracking-widest text-center transition-all select-all"
+                          >
+                            {key}
+                          </button>
+                          <p className={`text-xs mt-2 text-center transition-colors ${copied ? "text-emerald-400" : "text-gray-600"}`}>
+                            {copied ? "Gekopieerd!" : `Klik op de key om te kopiëren · Activeer op ${item.game.platform}`}
+                          </p>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => copyKey(item.game.id, key)}
-                          className="w-full bg-[#0D0D0D] border border-[#2A2A2A] hover:border-[#F25B29]/50 cursor-pointer rounded-lg px-4 py-3 font-mono text-[#F25B29] text-sm tracking-widest text-center transition-all select-all"
-                        >
-                          {key}
-                        </button>
-                        <p className={`text-xs mt-2 text-center transition-colors ${copied ? "text-emerald-400" : "text-gray-600"}`}>
-                          {copied ? "Gekopieerd!" : `Klik op de key om te kopiëren · Activeer op ${item.game.platform}`}
-                        </p>
-                      </div>
-                    );
-                  })}
+                      );
+                    }),
+                  )}
               </div>
             )}
 
