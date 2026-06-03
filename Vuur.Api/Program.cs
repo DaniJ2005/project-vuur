@@ -35,8 +35,6 @@ builder.Services.AddAutoMapper(typeof(ProductProfile));
 
 // PostgreSQL
 builder.Services.AddSingleton<PostgresContext>();
-
-// MongoDB
 builder.Services.AddSingleton<MongoContext>();
 
 // Redis
