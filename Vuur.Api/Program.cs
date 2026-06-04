@@ -9,6 +9,7 @@ using Vuur.Api.Features.Auth;
 using Vuur.Api.Features.Orders;
 using Vuur.Api.Features.Users;
 using Vuur.Api.Features.Products;
+using Vuur.Api.Features.Admin;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,7 +41,7 @@ builder.Services.AddSingleton<MongoContext>();
 // Redis
 builder.Services.AddSingleton<RedisContext>();
 
-// ── Products ──────────────────────────────────────────────────────────────────
+// ── Products
 builder.Services.AddSingleton<IProductReadRepository, ProductReadRepository>();
 builder.Services.AddSingleton<IProductRepository,     ProductRepository>();
 
@@ -60,6 +61,7 @@ builder.Services.AddScoped<WishlistReadRepository>();
 builder.Services.AddScoped<OrderReadRepository>();
 builder.Services.AddScoped<PaymentReadRepository>();
 builder.Services.AddScoped<ProductReadRepository>();
+builder.Services.AddScoped<AdminUserRepository>();
 
 // Services
 builder.Services.AddScoped<TokenService>();

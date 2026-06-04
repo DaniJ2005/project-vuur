@@ -1,36 +1,89 @@
 import type { Product } from "@/features/products/products.types";
 
-export interface AdminTable {
-  name: string;
-  canDelete: boolean;
-  rows: AdminRow[];
-}
+// ── Generic table types
 
-/** All column values from the backend are primitives or null */
 export type AdminRowValue = string | number | boolean | null;
 export type AdminRow = Record<string, AdminRowValue>;
-
-/**
- * The edit form always holds string values because HTML inputs work with strings.
- * The hook converts them back to the correct primitive types before sending to the API.
- */
 export type EditForm = Record<string, string>;
 
-/**
- * A single field change captured before the user confirms an edit.
- */
 export interface FieldChange {
   key: string;
   before: string;
   after: string;
 }
 
-/**
- * The postgres PATCH/POST payload: the same primitive union as AdminRow
- * but omitting 'id' (auto-generated) so we use Omit on a mapped type.
- */
-export type AdminRowPayload = Record<string, AdminRowValue>;
+// ── Users
+export interface AdminUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  roleName: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
+export interface AdminCreateUserRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  role: "customer" | "admin";
+}
+
+export interface AdminUpdateUserRequest {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  role?: "customer" | "admin";
+}
+
+// ── Orders
+export type OrderStatus = "pending" | "paid" | "fulfilled" | "cancelled";
+
+export interface AdminOrder {
+  id: string;
+  userId: string | null;
+  customerEmail: string;
+  customerFirstName: string;
+  customerLastName: string;
+  status: OrderStatus;
+  requiresShipping: boolean;
+  shippingMethod: string | null;
+  shippingPrice: number;
+  totalAmount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ── Addresses
+export interface AdminAddress {
+  id: string;
+  userId: string;
+  userEmail: string;
+  label: string;
+  street: string;
+  houseNumber: string;
+  houseExt: string;
+  postCode: string;
+  city: string;
+  countryCode: string;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ── Wishlist 
+export interface AdminWishlistItem {
+  id: string;
+  userId: string;
+  userEmail: string;
+  productsId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ── Redis 
 export interface AdminRefreshToken {
   token: string;
   tokenPreview: string;
@@ -38,6 +91,7 @@ export interface AdminRefreshToken {
   expiresAt: string | null;
 }
 
+// ── Analytics
 export interface AdminAnalyticsTopProduct {
   productId: string;
   productName: string;
@@ -55,6 +109,7 @@ export interface AdminAnalytics {
   topProducts: AdminAnalyticsTopProduct[];
 }
 
+// ── Activity
 export interface AdminActivityEntry {
   id: string;
   timestamp: string;
@@ -62,7 +117,6 @@ export interface AdminActivityEntry {
 }
 
 export interface AdminDataSnapshot {
-  postgresTables: AdminTable[];
   mongoProducts: Product[];
   refreshTokens: AdminRefreshToken[];
 }

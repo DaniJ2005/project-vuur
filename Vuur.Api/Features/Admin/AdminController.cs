@@ -14,209 +14,177 @@ namespace Vuur.Api.Features.Admin;
 public class AdminController(
     PostgresContext postgres,
     RedisContext redis,
-    IProductReadRepository productReader) : ControllerBase
+    IProductReadRepository productReader,
+    AdminUserRepository adminUserRepo) : ControllerBase
 {
-    // ── Table definitions ─────────────────────────────────────────────────────
-    //
-    // SelectSql must alias all columns to camelCase so the JSON response is
-    // consistent with the rest of the API. Queries are kept in sync with the
-    // migration history:
-    //   V003 created addresses with column 'address'
-    //   V007 renamed it to 'street' and added label/house_number/house_ext/post_code/is_default
-    //   V004 created orders with products_id
-    //   V008 dropped products_id and replaced it with order_items + status + totals
+    private static readonly IReadOnlySet<string> ValidOrderStatuses =
+        new HashSet<string> { "pending", "paid", "fulfilled", "cancelled" };
 
-    private static readonly IReadOnlyDictionary<string, AdminPostgresTable> Tables =
-        new Dictionary<string, AdminPostgresTable>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["users"] = new(
-                Name: "users",
-                SelectSql: """
-                    SELECT id::text          AS "id",
-                           first_name        AS "firstName",
-                           last_name         AS "lastName",
-                           email,
-                           created_at        AS "createdAt",
-                           updated_at        AS "updatedAt"
-                    FROM   users
-                    ORDER  BY created_at DESC;
-                    """,
-                DeleteSql: "DELETE FROM users WHERE id = @Id;"),
+    // ── Users
 
-            ["addresses"] = new(
-                Name: "addresses",
-                SelectSql: """
-                    SELECT id::text          AS "id",
-                           user_id::text     AS "userId",
-                           label,
-                           street,
-                           house_number      AS "houseNumber",
-                           house_ext         AS "houseExt",
-                           post_code         AS "postCode",
-                           city,
-                           country_code      AS "countryCode",
-                           is_default        AS "isDefault",
-                           created_at        AS "createdAt",
-                           updated_at        AS "updatedAt"
-                    FROM   addresses
-                    ORDER  BY created_at DESC;
-                    """,
-                DeleteSql: "DELETE FROM addresses WHERE id = @Id;"),
+    // GET /api/admin/users
+    [HttpGet("users")]
+    public async Task<IActionResult> GetUsers()
+        => Ok(await adminUserRepo.GetAllAsync());
 
-            ["orders"] = new(
-                Name: "orders",
-                SelectSql: """
-                    SELECT id::text              AS "id",
-                           user_id::text         AS "userId",
-                           customer_email        AS "customerEmail",
-                           customer_first_name   AS "customerFirstName",
-                           customer_last_name    AS "customerLastName",
-                           status,
-                           requires_shipping     AS "requiresShipping",
-                           total_amount          AS "totalAmount",
-                           created_at            AS "createdAt",
-                           updated_at            AS "updatedAt"
-                    FROM   orders
-                    ORDER  BY created_at DESC;
-                    """,
-                DeleteSql: "DELETE FROM orders WHERE id = @Id;"),
-
-            ["payments"] = new(
-                Name: "payments",
-                SelectSql: """
-                    SELECT id::text          AS "id",
-                           order_id::text    AS "orderId",
-                           created_at        AS "createdAt",
-                           updated_at        AS "updatedAt"
-                    FROM   payments
-                    ORDER  BY created_at DESC;
-                    """,
-                DeleteSql: "DELETE FROM payments WHERE id = @Id;"),
-
-            ["wishlist"] = new(
-                Name: "wishlist",
-                SelectSql: """
-                    SELECT id::text          AS "id",
-                           user_id::text     AS "userId",
-                           products_id       AS "productsId",
-                           created_at        AS "createdAt",
-                           updated_at        AS "updatedAt"
-                    FROM   wishlist
-                    ORDER  BY created_at DESC;
-                    """,
-                DeleteSql: "DELETE FROM wishlist WHERE id = @Id;"),
-        };
-
-    // ── Postgres endpoints ────────────────────────────────────────────────────
-
-    // GET /api/admin/postgres
-    [HttpGet("postgres")]
-    public async Task<IActionResult> GetPostgres()
+    // POST /api/admin/users
+    [HttpPost("users")]
+    public async Task<IActionResult> CreateUser([FromBody] AdminCreateUserRequest req)
     {
-        var tables = new List<AdminTableResponse>();
-
-        foreach (var table in Tables.Values)
-        {
-            tables.Add(new AdminTableResponse(
-                table.Name,
-                table.DeleteSql is not null,
-                await QueryRowsAsync(table.SelectSql)));
-        }
-
-        return Ok(tables);
+        var created = await adminUserRepo.CreateAsync(req);
+        if (created is null)
+            return BadRequest(new { error = "Invalid role specified. Use 'customer' or 'admin'." });
+        return Ok(created);
     }
 
-    // DELETE /api/admin/postgres/{tableName}/{id}
-    [HttpDelete("postgres/{tableName}/{id:guid}")]
-    public async Task<IActionResult> DeletePostgresRow(string tableName, Guid id)
+    // PUT /api/admin/users/{id}
+    [HttpPut("users/{id:guid}")]
+    public async Task<IActionResult> UpdateUser(Guid id, [FromBody] AdminUpdateUserRequest req)
     {
-        if (!Tables.TryGetValue(tableName, out var table) || table.DeleteSql is null)
-            return NotFound(new { error = "Unknown table or table is read-only." });
+        var updated = await adminUserRepo.UpdateAsync(id, req);
+        if (updated is null)
+            return NotFound(new { error = "User not found or invalid role." });
+        return Ok(updated);
+    }
+
+    // DELETE /api/admin/users/{id}
+    [HttpDelete("users/{id:guid}")]
+    public async Task<IActionResult> DeleteUser(Guid id)
+    {
+        var deleted = await adminUserRepo.DeleteAsync(id);
+        return deleted ? NoContent() : NotFound(new { error = "User not found." });
+    }
+
+    // ── Orders
+
+    // GET /api/admin/orders
+    [HttpGet("orders")]
+    public async Task<IActionResult> GetOrders()
+    {
+        const string sql = """
+            SELECT id::text             AS "id",
+                   user_id::text        AS "userId",
+                   customer_email       AS "customerEmail",
+                   customer_first_name  AS "customerFirstName",
+                   customer_last_name   AS "customerLastName",
+                   status,
+                   requires_shipping    AS "requiresShipping",
+                   shipping_method      AS "shippingMethod",
+                   shipping_price       AS "shippingPrice",
+                   total_amount         AS "totalAmount",
+                   created_at           AS "createdAt",
+                   updated_at           AS "updatedAt"
+            FROM   orders
+            ORDER  BY created_at DESC;
+            """;
+        return Ok(await QueryRowsAsync(sql));
+    }
+
+    // PATCH /api/admin/orders/{id}/status
+    [HttpPatch("orders/{id:guid}/status")]
+    public async Task<IActionResult> UpdateOrderStatus(Guid id, [FromBody] AdminUpdateOrderStatusRequest req)
+    {
+        if (!ValidOrderStatuses.Contains(req.Status))
+            return BadRequest(new { error = $"Invalid status. Valid values: {string.Join(", ", ValidOrderStatuses)}." });
+
+        const string sql = """
+            UPDATE orders
+            SET    status     = @Status,
+                   updated_at = @Now
+            WHERE  id = @Id
+            RETURNING id::text AS id, status, updated_at AS "updatedAt";
+            """;
 
         using var conn = postgres.CreateConnection();
-        var affected = await conn.ExecuteAsync(table.DeleteSql, new { Id = id });
-        return affected > 0 ? NoContent() : NotFound(new { error = "Row not found." });
+        var result = await conn.QuerySingleOrDefaultAsync(sql, new { Status = req.Status, Now = DateTime.UtcNow, Id = id });
+        return result is null ? NotFound(new { error = "Order not found." }) : Ok(result);
     }
 
-    // POST /api/admin/postgres/{tableName}
-    [HttpPost("postgres/{tableName}")]
-    public async Task<IActionResult> CreatePostgresRow(
-        string tableName,
-        [FromBody] Dictionary<string, object?> payload)
+    // DELETE /api/admin/orders/{id}
+    [HttpDelete("orders/{id:guid}")]
+    public async Task<IActionResult> DeleteOrder(Guid id)
     {
-        if (!Tables.TryGetValue(tableName, out var table) || table.DeleteSql is null)
-            return NotFound(new { error = "Unknown table or table is read-only." });
-
-        var fields = payload
-            .Where(kv => kv.Key != "id" && !string.IsNullOrWhiteSpace(kv.Value?.ToString()))
-            .ToDictionary(kv => SqlHelpers.ToSnakeCase(kv.Key), kv => SqlHelpers.ConvertJsonElement(kv.Value));
-
-        if (fields.Count == 0)
-            return BadRequest(new { error = "No valid fields to insert." });
-
-        var columns   = string.Join(", ", fields.Keys);
-        var paramRefs = string.Join(", ", fields.Keys.Select(k => "@" + k));
-        var sql       = $"INSERT INTO {table.Name} ({columns}) VALUES ({paramRefs}) RETURNING id::text AS id;";
-
-        var parameters = new DynamicParameters();
-        foreach (var (key, value) in fields)
-            parameters.Add("@" + key, value);
-
+        const string sql = "DELETE FROM orders WHERE id = @Id;";
         using var conn = postgres.CreateConnection();
-        var newId = await conn.ExecuteScalarAsync<string?>(sql, parameters);
-
-        if (string.IsNullOrEmpty(newId))
-            return StatusCode(500, new { error = "Insert failed." });
-
-        var rows    = await QueryRowsAsync(table.SelectSql);
-        var created = rows.FirstOrDefault(r => r.TryGetValue("id", out var v) && v?.ToString() == newId);
-        return created is not null ? Ok(created) : NotFound(new { error = "Inserted row not found." });
+        var rows = await conn.ExecuteAsync(sql, new { Id = id });
+        return rows > 0 ? NoContent() : NotFound(new { error = "Order not found." });
     }
 
-    // PUT /api/admin/postgres/{tableName}/{id}
-    [HttpPut("postgres/{tableName}/{id:guid}")]
-    public async Task<IActionResult> UpdatePostgresRow(
-        string tableName,
-        Guid id,
-        [FromBody] Dictionary<string, object?> payload)
+    // ── Addresses
+
+    // GET /api/admin/addresses
+    [HttpGet("addresses")]
+    public async Task<IActionResult> GetAddresses()
     {
-        if (!Tables.TryGetValue(tableName, out var table) || table.DeleteSql is null)
-            return NotFound(new { error = "Unknown table or table is read-only." });
-
-        var fields = payload
-            .Where(kv => kv.Key != "id" && !string.IsNullOrWhiteSpace(kv.Value?.ToString()))
-            .ToDictionary(kv => SqlHelpers.ToSnakeCase(kv.Key), kv => SqlHelpers.ConvertJsonElement(kv.Value));
-
-        if (fields.Count == 0)
-            return BadRequest(new { error = "No valid fields to update." });
-
-        var assignments = string.Join(", ", fields.Keys.Select(k => $"{k} = @{k}"));
-        var sql         = $"UPDATE {table.Name} SET {assignments} WHERE id = @Id RETURNING id::text AS id;";
-
-        var parameters = new DynamicParameters();
-        parameters.Add("@Id", id);
-        foreach (var (key, value) in fields)
-            parameters.Add("@" + key, value);
-
-        using var conn = postgres.CreateConnection();
-        var updatedId = await conn.ExecuteScalarAsync<string?>(sql, parameters);
-
-        if (string.IsNullOrEmpty(updatedId))
-            return NotFound(new { error = "Row not found or nothing changed." });
-
-        var rows    = await QueryRowsAsync(table.SelectSql);
-        var updated = rows.FirstOrDefault(r => r.TryGetValue("id", out var v) && v?.ToString() == updatedId);
-        return updated is not null ? Ok(updated) : NotFound(new { error = "Updated row not found." });
+        const string sql = """
+            SELECT a.id::text        AS "id",
+                   a.user_id::text   AS "userId",
+                   u.email           AS "userEmail",
+                   a.label,
+                   a.street,
+                   a.house_number    AS "houseNumber",
+                   a.house_ext       AS "houseExt",
+                   a.post_code       AS "postCode",
+                   a.city,
+                   a.country_code    AS "countryCode",
+                   a.is_default      AS "isDefault",
+                   a.created_at      AS "createdAt",
+                   a.updated_at      AS "updatedAt"
+            FROM   addresses a
+            JOIN   users u ON u.id = a.user_id
+            ORDER  BY a.created_at DESC;
+            """;
+        return Ok(await QueryRowsAsync(sql));
     }
 
-    // ── MongoDB endpoints ─────────────────────────────────────────────────────
+    // DELETE /api/admin/addresses/{id}
+    [HttpDelete("addresses/{id:guid}")]
+    public async Task<IActionResult> DeleteAddress(Guid id)
+    {
+        const string sql = "DELETE FROM addresses WHERE id = @Id;";
+        using var conn = postgres.CreateConnection();
+        var rows = await conn.ExecuteAsync(sql, new { Id = id });
+        return rows > 0 ? NoContent() : NotFound(new { error = "Address not found." });
+    }
+
+    // ── Wishlist
+
+    // GET /api/admin/wishlist
+    [HttpGet("wishlist")]
+    public async Task<IActionResult> GetWishlist()
+    {
+        const string sql = """
+            SELECT w.id::text        AS "id",
+                   w.user_id::text   AS "userId",
+                   u.email           AS "userEmail",
+                   w.products_id     AS "productsId",
+                   w.created_at      AS "createdAt",
+                   w.updated_at      AS "updatedAt"
+            FROM   wishlist w
+            JOIN   users u ON u.id = w.user_id
+            ORDER  BY w.created_at DESC;
+            """;
+        return Ok(await QueryRowsAsync(sql));
+    }
+
+    // DELETE /api/admin/wishlist/{id}
+    [HttpDelete("wishlist/{id:guid}")]
+    public async Task<IActionResult> DeleteWishlistItem(Guid id)
+    {
+        const string sql = "DELETE FROM wishlist WHERE id = @Id;";
+        using var conn = postgres.CreateConnection();
+        var rows = await conn.ExecuteAsync(sql, new { Id = id });
+        return rows > 0 ? NoContent() : NotFound(new { error = "Wishlist item not found." });
+    }
+
+    // ── MongoDB products
 
     // GET /api/admin/mongo/products
     [HttpGet("mongo/products")]
     public async Task<IActionResult> GetMongoProducts()
         => Ok(await productReader.GetAllAsync());
 
-    // ── Redis endpoints ───────────────────────────────────────────────────────
+    // ── Redis refresh tokens
 
     // GET /api/admin/redis/refresh-tokens
     [HttpGet("redis/refresh-tokens")]
@@ -238,24 +206,21 @@ public class AdminController(
         return NoContent();
     }
 
-    // ── Analytics ─────────────────────────────────────────────────────────────
+    // ── Analytics
 
     // GET /api/admin/analytics
     [HttpGet("analytics")]
     public async Task<IActionResult> GetAnalytics()
     {
-        var totalOrders       = await QueryScalarAsync<int>("SELECT COUNT(*)::int FROM orders;");
-        var totalPayments     = await QueryScalarAsync<int>("SELECT COUNT(*)::int FROM payments;");
-        var totalWishlist     = await QueryScalarAsync<int>("SELECT COUNT(*)::int FROM wishlist;");
-        var totalUsers        = await QueryScalarAsync<int>("SELECT COUNT(*)::int FROM users;");
-        var totalProducts     = (await productReader.GetAllAsync()).Count;
-
-        // V008: orders no longer have products_id — count distinct products via order_items
-        var totalDistinct     = await QueryScalarAsync<int>(
-            "SELECT COUNT(DISTINCT product_id)::int FROM order_items;");
+        var totalOrders   = await QueryScalarAsync<int>("SELECT COUNT(*)::int FROM orders;");
+        var totalPayments = await QueryScalarAsync<int>("SELECT COUNT(*)::int FROM payments;");
+        var totalWishlist = await QueryScalarAsync<int>("SELECT COUNT(*)::int FROM wishlist;");
+        var totalUsers    = await QueryScalarAsync<int>("SELECT COUNT(*)::int FROM users;");
+        var totalProducts = (await productReader.GetAllAsync()).Count;
+        var totalDistinct = await QueryScalarAsync<int>("SELECT COUNT(DISTINCT product_id)::int FROM order_items;");
 
         var topRows = await QueryRowsAsync("""
-            SELECT   product_id   AS "productId",
+            SELECT   product_id         AS "productId",
                      SUM(quantity)::int AS "orderCount"
             FROM     order_items
             GROUP BY product_id
@@ -267,103 +232,76 @@ public class AdminController(
         foreach (var row in topRows)
         {
             var productId  = row.TryGetValue("productId",  out var pid)   ? pid?.ToString()  ?? string.Empty : string.Empty;
-            var orderCount = row.TryGetValue("orderCount", out var count)
-                             && int.TryParse(count?.ToString(), out var n) ? n : 0;
-
-            var product = await productReader.GetByIdAsync(productId);
-            topProducts.Add(new AdminAnalyticsTopProductResponse(
-                productId,
-                product?.ProductName ?? "Onbekend product",
-                orderCount));
+            var orderCount = row.TryGetValue("orderCount", out var count) && int.TryParse(count?.ToString(), out var n) ? n : 0;
+            var product    = await productReader.GetByIdAsync(productId);
+            topProducts.Add(new AdminAnalyticsTopProductResponse(productId, product?.ProductName ?? "Onbekend product", orderCount));
         }
 
         return Ok(new AdminAnalyticsResponse(
-            TotalOrders:                  totalOrders,
-            TotalPayments:                totalPayments,
-            TotalWishlistItems:           totalWishlist,
-            TotalUsers:                   totalUsers,
-            TotalProducts:                totalProducts,
-            TotalDistinctOrderedProducts: totalDistinct,
-            TotalPageViews:               0,
-            TopProducts:                  topProducts));
+            totalOrders, totalPayments, totalWishlist, totalUsers,
+            totalProducts, totalDistinct, 0, topProducts));
     }
 
-    // ── Activity log ──────────────────────────────────────────────────────────
+    // ── Activity log
 
     // GET /api/admin/activity
     [HttpGet("activity")]
     public async Task<IActionResult> GetActivity()
     {
-        // V008: orders no longer carry products_id; order_items replaced it.
-        // The wishlist table still has products_id (unchanged by any migration).
         const string sql = """
             SELECT id, description, timestamp FROM (
-
                 SELECT o.id::text AS id,
-                       CONCAT(u.first_name, ' ', u.last_name,
+                       CONCAT(COALESCE(u.first_name || ' ' || u.last_name, o.customer_email),
                               ' plaatste bestelling ', o.id::text) AS description,
                        o.created_at AS timestamp
                 FROM   orders o
                 LEFT JOIN users u ON u.id = o.user_id
-
                 UNION ALL
-
                 SELECT p.id::text AS id,
-                       CONCAT(u.first_name, ' ', u.last_name,
+                       CONCAT(COALESCE(u.first_name || ' ' || u.last_name, o.customer_email),
                               ' betaalde order ', p.order_id::text) AS description,
                        p.created_at AS timestamp
                 FROM   payments p
-                JOIN   orders  o ON o.id = p.order_id
+                JOIN   orders o ON o.id = p.order_id
                 LEFT JOIN users u ON u.id = o.user_id
-
                 UNION ALL
-
                 SELECT w.id::text AS id,
                        CONCAT(u.first_name, ' ', u.last_name,
                               ' voegde product ', w.products_id, ' toe aan wishlist') AS description,
                        w.created_at AS timestamp
                 FROM   wishlist w
                 JOIN   users u ON u.id = w.user_id
-
                 UNION ALL
-
                 SELECT a.id::text AS id,
-                       CONCAT(u.first_name, ' ', u.last_name,
-                              ' voegde een adres toe') AS description,
+                       CONCAT(u.first_name, ' ', u.last_name, ' voegde een adres toe') AS description,
                        a.created_at AS timestamp
                 FROM   addresses a
                 JOIN   users u ON u.id = a.user_id
-
                 UNION ALL
-
                 SELECT u.id::text AS id,
-                       CONCAT(u.first_name, ' ', u.last_name,
-                              ' maakte een account aan') AS description,
+                       CONCAT(u.first_name, ' ', u.last_name, ' maakte een account aan') AS description,
                        u.created_at AS timestamp
                 FROM   users u
-
             ) x
-            ORDER  BY timestamp DESC
-            LIMIT  20;
+            ORDER BY timestamp DESC
+            LIMIT 20;
             """;
 
         var rows = await QueryRowsAsync(sql);
         return Ok(rows.Select(row =>
         {
-            var rawTs     = row.TryGetValue("timestamp",   out var ts)  ? ts?.ToString()  : null;
+            var rawTs = row.TryGetValue("timestamp", out var ts) ? ts?.ToString() : null;
             var timestamp = DateTime.TryParse(rawTs, null,
-                                System.Globalization.DateTimeStyles.RoundtripKind, out var parsed)
-                            ? parsed
-                            : DateTime.MinValue;
-
+                System.Globalization.DateTimeStyles.RoundtripKind, out var parsed)
+                ? parsed : DateTime.MinValue;
             return new AdminActivityResponse(
-                row["id"]?.ToString()          ?? string.Empty,
+                row["id"]?.ToString() ?? string.Empty,
                 row["description"]?.ToString() ?? string.Empty,
                 timestamp);
         }));
     }
 
-    // ── Private helpers ───────────────────────────────────────────────────────
+    // ── Helpers
 
     private async Task<T> QueryScalarAsync<T>(string sql)
     {
