@@ -15,6 +15,16 @@ public class AdminUserRepository(PostgresContext db)
 
     public async Task<AdminUserResponse?> CreateAsync(AdminCreateUserRequest req)
     {
+        using var conn = db.CreateConnection();
+        var emailExists = await conn.ExecuteScalarAsync<bool>(
+        "SELECT EXISTS(SELECT 1 FROM users WHERE LOWER(email) = LOWER(@Email))",
+        new { req.Email });
+
+        if (emailExists)
+        {
+            return null;
+        }
+
         var role = await GetRoleAsync(req.Role);
         if (role is null) return null;
 
@@ -44,7 +54,6 @@ public class AdminUserRepository(PostgresContext db)
             JOIN   roles r ON r.id = i.role_id;
             """;
 
-        using var conn = db.CreateConnection();
         var created = await conn.QuerySingleAsync<User>(sql, user);
         return ToResponse(created);
     }
