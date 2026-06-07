@@ -1,87 +1,57 @@
-using StackExchange.Redis;
+using Dapper;
 using Vuur.Api.Data;
 
 namespace Vuur.Api.Features.Users;
 
-public class WishlistRepository(RedisContext redis)
+public class WishlistRepository(PostgresContext db)
 {
     public async Task<WishlistItem> AddAsync(Guid userId, string productsId)
     {
-        var db = redis.Db;
-        var hashKey = WishlistRedisKeys.Items(userId);
-        var orderedKey = WishlistRedisKeys.OrderedItems(userId);
+        const string sql = """
+            INSERT INTO wishlist (id, user_id, products_id, created_at, updated_at)
+            VALUES (@Id, @UserId, @ProductsId, @CreatedAt, @UpdatedAt)
+            ON CONFLICT (user_id, products_id) DO UPDATE
+            SET amount = wishlist.amount + 1, updated_at = now()
+            RETURNING *;
+            """;
 
-        var existing = await db.HashGetAsync(hashKey, productsId);
-        if (existing.HasValue)
-        {
-            var existingItem = WishlistRedisValue.Parse(userId, productsId, existing);
-            existingItem.Amount++;
-            existingItem.UpdatedAt = DateTime.UtcNow;
-
-            await db.HashSetAsync(hashKey, productsId, WishlistRedisValue.Format(existingItem));
-
-            return existingItem;
-        }
-
+        var id = Guid.NewGuid();
         var now = DateTime.UtcNow;
-        var item = new WishlistItem
+
+        using var conn = db.CreateConnection();
+        return await conn.QuerySingleAsync<WishlistItem>(sql, new
         {
-            Id = Guid.NewGuid(),
+            Id = id,
             UserId = userId,
             ProductsId = productsId,
             CreatedAt = now,
             UpdatedAt = now,
-        };
-
-        var added = await db.HashSetAsync(
-            hashKey,
-            productsId,
-            WishlistRedisValue.Format(item),
-            When.NotExists);
-
-        if (!added)
-        {
-            existing = await db.HashGetAsync(hashKey, productsId);
-            var existingItem = WishlistRedisValue.Parse(userId, productsId, existing);
-            existingItem.Amount++;
-            existingItem.UpdatedAt = DateTime.UtcNow;
-
-            await db.HashSetAsync(hashKey, productsId, WishlistRedisValue.Format(existingItem));
-
-            return existingItem;
-        }
-
-        await db.SortedSetAddAsync(orderedKey, productsId, now.Ticks);
-
-        return item;
+        });
     }
 
     public async Task<WishlistItem?> UpdateAmountAsync(Guid userId, string productsId, int amount)
     {
-        var db = redis.Db;
-        var hashKey = WishlistRedisKeys.Items(userId);
-        var existing = await db.HashGetAsync(hashKey, productsId);
+        const string sql = """
+            UPDATE wishlist
+            SET amount = @Amount, updated_at = now()
+            WHERE user_id = @UserId AND products_id = @ProductsId
+            RETURNING *;
+            """;
 
-        if (!existing.HasValue)
-            return null;
-
-        var item = WishlistRedisValue.Parse(userId, productsId, existing);
-        item.Amount = amount;
-        item.UpdatedAt = DateTime.UtcNow;
-
-        await db.HashSetAsync(hashKey, productsId, WishlistRedisValue.Format(item));
-
-        return item;
+        using var conn = db.CreateConnection();
+        return await conn.QuerySingleOrDefaultAsync<WishlistItem>(sql, new
+        {
+            UserId = userId,
+            ProductsId = productsId,
+            Amount = amount,
+        });
     }
 
     public async Task<bool> RemoveAsync(Guid userId, string productsId)
     {
-        var db = redis.Db;
-        var removed = await db.HashDeleteAsync(WishlistRedisKeys.Items(userId), productsId);
-
-        if (removed)
-            await db.SortedSetRemoveAsync(WishlistRedisKeys.OrderedItems(userId), productsId);
-
-        return removed;
+        const string sql = "DELETE FROM wishlist WHERE user_id = @UserId AND products_id = @ProductsId;";
+        using var conn = db.CreateConnection();
+        var rows = await conn.ExecuteAsync(sql, new { UserId = userId, ProductsId = productsId });
+        return rows > 0;
     }
 }

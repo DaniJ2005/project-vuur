@@ -4,9 +4,6 @@ using System.Security.Claims;
 
 namespace Vuur.Api.Features.Users;
 
-/// <summary>
-/// Manage the authenticated user's product wishlist.
-/// </summary>
 [ApiController]
 [Route("/api/wishlist")]
 [Authorize]
@@ -17,7 +14,7 @@ public class WishlistController(WishlistService service) : ControllerBase
         Guid.Parse(User.FindFirstValue("sub")!);
 
 
-    /// <summary>Get all wishlist items for the current user.</summary>
+    // Get all wishlist items for the current user.
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<WishlistItemResponse>), 200)]
     public async Task<IActionResult> GetAll()
@@ -26,7 +23,7 @@ public class WishlistController(WishlistService service) : ControllerBase
         return Ok(items);
     }
 
-    /// <summary>Add a product to the wishlist.</summary>
+    // Add a product to the wishlist.
     [HttpPost]
     [ProducesResponseType(typeof(WishlistItemResponse), 201)]
     [ProducesResponseType(typeof(object), 400)]
@@ -36,7 +33,7 @@ public class WishlistController(WishlistService service) : ControllerBase
         return CreatedAtAction(nameof(GetAll), new { }, item);
     }
 
-    /// <summary>Update the amount for a product in the wishlist.</summary>
+    // Update the amount for a product in the wishlist.
     [HttpPut("{productsId}/amount")]
     [ProducesResponseType(typeof(WishlistItemResponse), 200)]
     [ProducesResponseType(typeof(object), 404)]
@@ -47,7 +44,7 @@ public class WishlistController(WishlistService service) : ControllerBase
         return Ok(item);
     }
 
-    /// <summary>Remove a product from the wishlist.</summary>
+    // Remove a product from the wishlist.
     [HttpDelete("{productsId}")]
     [ProducesResponseType(204)]
     [ProducesResponseType(typeof(object), 404)]
