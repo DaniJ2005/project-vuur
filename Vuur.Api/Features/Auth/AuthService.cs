@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Vuur.Api.Data;
+using Vuur.Api.Features.RefreshTokens;
 using Vuur.Api.Features.Users;
 
 namespace Vuur.Api.Features.Auth;
@@ -8,7 +9,8 @@ public class AuthService(
     UserRepository userRepo,
     UserReadRepository userReadRepo,
     TokenService tokenService,
-    RedisContext redis)
+    RefreshTokensRepository refreshRepo,
+    RefreshTokensReadRepository refreshReadRepo)
 {
     private readonly PasswordHasher<User> _hasher = new();
 
@@ -59,7 +61,7 @@ public class AuthService(
     }
     public async Task<(bool success, string? error, AuthResponse? response)> RefreshAsync(RefreshRequest req)
     {
-        var userId = await redis.GetRefreshTokenAsync(req.RefreshToken);
+        var userId = await refreshReadRepo.GetAsync(req.RefreshToken);
         if (userId is null)
             return (false, "Refresh token is invalid or expired.", null);
 
@@ -67,14 +69,14 @@ public class AuthService(
         if (user is null)
             return (false, "User not found.", null);
 
-        await redis.DeleteRefreshTokenAsync(req.RefreshToken);
+        await refreshRepo.DeleteRefreshTokenAsync(req.RefreshToken);
 
         return await IssueTokensAsync(user);
     }
 
     public async Task<bool> LogoutAsync(string refreshToken)
     {
-        await redis.DeleteRefreshTokenAsync(refreshToken);
+        await refreshRepo.DeleteRefreshTokenAsync(refreshToken);
         return true;
     }
 
@@ -83,7 +85,7 @@ public class AuthService(
         var (accessToken, accessExp) = tokenService.GenerateAccessToken(user);
         var (refreshToken, refreshExp) = tokenService.GenerateRefreshToken();
 
-        await redis.SetRefreshTokenAsync(refreshToken, user.Id);
+        await refreshRepo.SetRefreshTokenAsync(refreshToken, user.Id);
 
         return (true, null, new AuthResponse(accessToken, refreshToken, accessExp));
     }

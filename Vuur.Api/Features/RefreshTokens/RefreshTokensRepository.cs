@@ -1,4 +1,5 @@
 using StackExchange.Redis;
+using Vuur.Api.Data;
 
 namespace Vuur.Api.Features.RefreshTokens;
 
@@ -11,9 +12,9 @@ public class RefreshTokensRepository
     public static string RefreshTokenKey(string token)
         => $"refresh_token:{token}";
 
-    public RefreshTokensRepository(IConnectionMultiplexer connection)
+    public RefreshTokensRepository(RedisContext redis)
     {
-        _db = connection.GetDatabase();
+        _db = redis.Db;
     }
 
     public async Task SetRefreshTokenAsync(string token, Guid userId)

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Vuur.Api.Data;
 using Vuur.Api.Features.Products;
+using Vuur.Api.Features.RefreshTokens;
 using Vuur.Api.Shared;
 
 namespace Vuur.Api.Features.Admin;
@@ -13,7 +14,8 @@ namespace Vuur.Api.Features.Admin;
 [Authorize(Roles = "admin")]
 public class AdminController(
     PostgresContext postgres,
-    RedisContext redis,
+    RefreshTokensRepository refreshRepo,
+    RefreshTokensReadRepository refreshReadRepo,
     IProductReadRepository productReader,
     AdminUserRepository adminUserRepo) : ControllerBase
 {
@@ -190,7 +192,7 @@ public class AdminController(
     [HttpGet("redis/refresh-tokens")]
     public async Task<IActionResult> GetRefreshTokens()
     {
-        var tokens = await redis.GetRefreshTokensAsync();
+        var tokens = await refreshReadRepo.GetAllAsync();
         return Ok(tokens.Select(t => new AdminRefreshTokenResponse(
             t.Token,
             t.Token.Length <= 10 ? t.Token : $"{t.Token[..6]}...{t.Token[^4..]}",
@@ -202,7 +204,7 @@ public class AdminController(
     [HttpDelete("redis/refresh-tokens/{token}")]
     public async Task<IActionResult> RevokeRefreshToken(string token)
     {
-        await redis.DeleteRefreshTokenAsync(token);
+        await refreshRepo.DeleteRefreshTokenAsync(token);
         return NoContent();
     }
 

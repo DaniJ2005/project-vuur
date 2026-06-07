@@ -1,4 +1,5 @@
 using StackExchange.Redis;
+using Vuur.Api.Data;
 
 namespace Vuur.Api.Features.RefreshTokens;
 
@@ -7,10 +8,10 @@ public class RefreshTokensReadRepository
     private readonly IConnectionMultiplexer _connection;
     private readonly IDatabase _db;
 
-    public RefreshTokensReadRepository(IConnectionMultiplexer connection)
+    public RefreshTokensReadRepository(RedisContext redis)
     {
-        _connection = connection;
-        _db = connection.GetDatabase();
+        _connection = redis._connection;
+        _db = redis.Db;
     }
 
     public async Task<Guid?> GetAsync(string token)
