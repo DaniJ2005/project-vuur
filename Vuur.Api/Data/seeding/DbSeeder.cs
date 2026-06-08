@@ -8,13 +8,13 @@ public static class DbSeeder
     public static async Task SeedAsync(
         PostgresContext postgres,
         MongoContext mongo,
-        bool isDevelopment,
+        bool isActive,
         EnvironmentVariables env)
     {
         await AdminSeeder.SeedAsync(postgres, env);
 
         //  Dev only
-        if (!isDevelopment) return;
+        if (!isActive) return;
         await ProductSeeder.SeedAsync(mongo);
     }
 }
