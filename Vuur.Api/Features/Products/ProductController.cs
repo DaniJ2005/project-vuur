@@ -1,69 +1,56 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Vuur.Api.Features.Products;
 
 [ApiController]
 [Route("api/products")]
-public class ProductController : ControllerBase
+[Produces("application/json")]
+public class ProductController(ProductService service) : ControllerBase
 {
-    private readonly ProductService _service;
-
-    public ProductController(ProductService service)
-    {
-        _service = service;
-    }
-
+    // GET /api/products
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var products = await _service.GetAllAsync();
+        var products = await service.GetAllAsync();
         return Ok(products);
     }
 
+    // GET /api/products/{id}
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(string id)
     {
-        var product = await _service.GetByIdAsync(id);
-
-        if (product is null)
-            return NotFound();
-
+        var product = await service.GetByIdAsync(id);
+        if (product is null) return NotFound();
         return Ok(product);
     }
 
+    // POST /api/products
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateProductRequest request)
+    [Authorize(Roles = "admin")]
+    public async Task<IActionResult> Create([FromBody] CreateProductRequest req)
     {
-        var created = await _service.CreateAsync(request);
-
-        return CreatedAtAction(
-            nameof(GetById),
-            new { id = created.Id },
-            created
-        );
+        var created = await service.CreateAsync(req);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 
+    // PUT /api/products/{id}
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(
-        string id,
-        [FromBody] UpdateProductRequest request)
+    [Authorize(Roles = "admin")]
+    public async Task<IActionResult> Update(string id, [FromBody] UpdateProductRequest req)
     {
-        var updated = await _service.UpdateAsync(id, request);
-
-        if (!updated)
-            return NotFound();
-
+        var updated = await service.UpdateAsync(id, req);
+        if (!updated) return NotFound();
         return NoContent();
     }
 
+    // DELETE /api/products/{id}
     [HttpDelete("{id}")]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> Delete(string id)
     {
-        var deleted = await _service.DeleteAsync(id);
-
-        if (!deleted)
-            return NotFound();
-
+        var deleted = await service.DeleteAsync(id);
+        if (!deleted) return NotFound();
         return NoContent();
     }
 }

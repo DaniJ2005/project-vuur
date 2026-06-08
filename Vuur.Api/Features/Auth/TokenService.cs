@@ -29,6 +29,7 @@ public class TokenService(EnvironmentVariables env)
             new Claim(JwtRegisteredClaimNames.Email,  user.Email),
             new Claim(JwtRegisteredClaimNames.GivenName, user.FirstName),
             new Claim(JwtRegisteredClaimNames.FamilyName, user.LastName),
+            new Claim("role", user.RoleName ?? string.Empty),
             new Claim(JwtRegisteredClaimNames.Jti,    Guid.NewGuid().ToString()),
         };
 

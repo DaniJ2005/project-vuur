@@ -1,38 +1,31 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
-namespace Vuur.Api.Features.Products
+namespace Vuur.Api.Features.Products;
+
+public class Product
 {
-    public class Product
-    {
-        [BsonId]
-        [BsonRepresentation(BsonType.ObjectId)]
-        public string Id { get; set; } = null!; // MongoDB ObjectId
+    [BsonId]
+    [BsonRepresentation(BsonType.ObjectId)]
+    public string Id { get; set; } = null!;
 
-        public string ProductName { get; set; } = null!;
+    public string ProductName { get; set; } = null!;
+    public string? ProductDescription { get; set; }
 
-        public string? ProductDescription { get; set; }
+    public string Platform { get; set; } = null!;
+    public string Genre { get; set; } = null!;
 
-        public string Platform { get; set; } = null!;
+    /// <summary>"key" or "disc"</summary>
+    public string Type { get; set; } = null!;
 
-        public string Genre { get; set; } = null!;
+    public decimal Price { get; set; }
+    public decimal OriginalPrice { get; set; }
+    public decimal DiscountPercent { get; set; }
+    public decimal Rating { get; set; }
 
-        public string Type { get; set; } = null!;
+    public bool IsNew { get; set; }
+    public bool IsFeatured { get; set; }
 
-        public decimal Price { get; set; }
-
-        public decimal OriginalPrice { get; set; }
-
-        public decimal DiscountPercent { get; set; }
-
-        public decimal Rating { get; set; }
-
-        public bool IsNew { get; set; }
-
-        public bool IsFeatured { get; set; }
-
-        public DateTime CreatedAt { get; set; }
-
-        public DateTime UpdatedAt { get; set; }
-    }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
 }

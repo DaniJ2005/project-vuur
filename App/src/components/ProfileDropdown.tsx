@@ -4,10 +4,11 @@ import { useAuth } from "@/features/auth/AuthProvider";
 import { useLogout } from "@/features/auth/auth.hooks";
 import { useWishlist } from "../context/WishlistContext";
 
-const MENU_ITEMS: { to: string; label: string; icon: string }[] = [
-  { to: "/orders",   label: "Mijn Bestellingen", icon: "" },
-  { to: "/wishlist", label: "Wishlist",          icon: "" },
-  { to: "/settings", label: "Instellingen",      icon: "" },
+const MENU_ITEMS: { to: string; label: string }[] = [
+  { to: "/orders",   label: "Mijn Bestellingen" },
+  { to: "/wishlist", label: "Wishlist" },
+  { to: "/settings", label: "Instellingen" },
+  { to: "/admin",    label: "Admin Dashboard" },
 ];
 
 const ProfileDropdown: React.FC = () => {
@@ -80,7 +81,7 @@ const ProfileDropdown: React.FC = () => {
 
           {/* Menu items */}
           <div className="py-1">
-            {MENU_ITEMS.map(({ to, label }) => (
+            {MENU_ITEMS.filter((item) => item.to !== "/admin" || user.role === "admin").map(({ to, label }) => (
               <Link
                 key={to}
                 to={to}

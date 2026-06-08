@@ -32,6 +32,9 @@ public class EnvironmentVariables
   // Swagger aan of uitzetten
   public bool EnableSwagger { get; }
 
+  public string AdminPassword { get; }
+  public string AdminEmail { get; }
+
   public EnvironmentVariables(IConfiguration config)
   {
     // IConfiguration injecten om variables uit .env te halen
@@ -64,6 +67,10 @@ public class EnvironmentVariables
 
     // Swagger aan of uit zetten
     EnableSwagger = RequiredBool("ENABLE_SWAGGER");
+
+    //Admin account
+    AdminPassword = Required("ADMIN_PASSWORD");
+    AdminEmail = Required("ADMIN_EMAIL");
 
     // Gebruiken voor debuggen om te checken of env vars goed geladen zijn
     PrintEnvironmentVariables();
@@ -153,6 +160,9 @@ public class EnvironmentVariables
     Console.WriteLine($"JWT_ISSUER: {JwtIssuer}");
     Console.WriteLine($"JWT_ACCESS_TOKEN_MINUTES: {JwtAccessTokenMinutes}");
     Console.WriteLine($"JWT_REFRESH_TOKEN_DAYS: {JwtRefreshTokenDays}");
+
+    Console.WriteLine($"Admin E-Mail: {AdminEmail}");
+    Console.WriteLine($"Admin password: {AdminPassword}");
 
     Console.WriteLine($"CORS_FRONTEND_ORIGIN: {CorsFrontendOrigin ?? "(not set — CORS disabled)"}");
 

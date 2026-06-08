@@ -1,14 +1,17 @@
+using AutoMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
-using AutoMapper;
-using Vuur.Api.Data;
 using Vuur.Api.Config;
+using Vuur.Api.Data;
+using Vuur.Api.Data.Seeding;
 using Vuur.Api.Features;
+using Vuur.Api.Features.Admin;
 using Vuur.Api.Features.Auth;
 using Vuur.Api.Features.Orders;
-using Vuur.Api.Features.Users;
 using Vuur.Api.Features.Products;
+using Vuur.Api.Features.RefreshTokens;
+using Vuur.Api.Features.Users;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,7 +19,7 @@ var builder = WebApplication.CreateBuilder(args);
 if (builder.Environment.IsDevelopment())
 {
     var envPath = Path.Combine(Directory.GetCurrentDirectory(), "..", ".env");
-    DotNetEnv.Env.Load(envPath);
+        DotNetEnv.Env.Load(envPath);
     // Push loaded env vars into IConfiguration so contexts can read them
     builder.Configuration.AddEnvironmentVariables();
 }
@@ -35,12 +38,14 @@ builder.Services.AddAutoMapper(typeof(ProductProfile));
 
 // PostgreSQL
 builder.Services.AddSingleton<PostgresContext>();
-
-// MongoDB
 builder.Services.AddSingleton<MongoContext>();
 
 // Redis
 builder.Services.AddSingleton<RedisContext>();
+
+// ── Products
+builder.Services.AddSingleton<IProductReadRepository, ProductReadRepository>();
+builder.Services.AddSingleton<IProductRepository,     ProductRepository>();
 
 // Repositories
 builder.Services.AddScoped<UserRepository>();
@@ -48,7 +53,8 @@ builder.Services.AddScoped<AddressRepository>();
 builder.Services.AddScoped<WishlistRepository>();
 builder.Services.AddScoped<OrderRepository>();
 builder.Services.AddScoped<PaymentRepository>();
-builder.Services.AddScoped<IProductRepository<Product>, ProductRepository>();
+builder.Services.AddSingleton<ProductCache>();
+builder.Services.AddScoped<RefreshTokensRepository>();
 
 // Read Repositories
 builder.Services.AddScoped<UserReadRepository>();
@@ -57,7 +63,8 @@ builder.Services.AddScoped<WishlistReadRepository>();
 builder.Services.AddScoped<OrderReadRepository>();
 builder.Services.AddScoped<PaymentReadRepository>();
 builder.Services.AddScoped<ProductReadRepository>();
-builder.Services.AddScoped<IProductReadRepository<Product>>(sp => sp.GetRequiredService<ProductReadRepository>());
+builder.Services.AddScoped<AdminUserRepository>();
+builder.Services.AddScoped<RefreshTokensReadRepository>();
 
 // Services
 builder.Services.AddScoped<TokenService>();
@@ -158,6 +165,11 @@ var app = builder.Build();
 // Run SQL migrations via DbUp (before the app starts serving requests)
 var pgContext = app.Services.GetRequiredService<PostgresContext>();
 pgContext.RunMigrations();
+
+var postgres = app.Services.GetRequiredService<PostgresContext>();
+var mongo    = app.Services.GetRequiredService<MongoContext>();
+
+await DbSeeder.SeedAsync(postgres, mongo, app.Environment.IsDevelopment(), env);
 
 // middleware pipeline
 if (env.EnableSwagger)
