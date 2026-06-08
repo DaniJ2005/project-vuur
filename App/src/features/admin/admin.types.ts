@@ -2,6 +2,14 @@ import type { Product } from "@/features/products/products.types";
 
 // ── Generic table types
 
+export type AdminRowPayload = Record<string, AdminRowValue>;
+
+export interface AdminTable {
+  name: string;
+  rows: AdminRow[];
+  canDelete: boolean;
+}
+
 export type AdminRowValue = string | number | boolean | null;
 export type AdminRow = Record<string, AdminRowValue>;
 export type EditForm = Record<string, string>;

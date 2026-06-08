@@ -1,4 +1,4 @@
-import type { AdminTable, AdminRow, EditForm, FieldChange } from "../admin.types";
+import type { AdminTable, AdminRow, AdminRowValue, EditForm, FieldChange } from "../admin.types";
 import type { usePostgresEditor } from "../hooks/usePostgresEditor";
 import { LoadingRows } from "./shared/LoadingRows";
 import { ConfirmModal } from "./shared/ConfirmModal";
@@ -234,7 +234,7 @@ function AdminDataTable({
             <tr key={String(row.id)} className="hover:bg-[#151515]">
               {columns.map((col) => (
                 <td key={col} className="px-5 py-3 whitespace-nowrap max-w-[260px] truncate">
-                  {rowValueToText(row[col])}
+                  {rowValueToText(row[col] as AdminRowValue)}
                 </td>
               ))}
               <td className="sticky right-0 bg-[#111] px-5 py-3 text-right border-l border-[#1A1A1A] z-10">
