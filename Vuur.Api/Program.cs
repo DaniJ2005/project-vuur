@@ -19,7 +19,7 @@ var builder = WebApplication.CreateBuilder(args);
 if (builder.Environment.IsDevelopment())
 {
     var envPath = Path.Combine(Directory.GetCurrentDirectory(), "..", ".env");
-        DotNetEnv.Env.Load(envPath);
+    DotNetEnv.Env.Load(envPath);
     // Push loaded env vars into IConfiguration so contexts can read them
     builder.Configuration.AddEnvironmentVariables();
 }
@@ -45,7 +45,7 @@ builder.Services.AddSingleton<RedisContext>();
 
 // ── Products
 builder.Services.AddSingleton<IProductReadRepository, ProductReadRepository>();
-builder.Services.AddSingleton<IProductRepository,     ProductRepository>();
+builder.Services.AddSingleton<IProductRepository, ProductRepository>();
 
 // Repositories
 builder.Services.AddScoped<UserRepository>();
@@ -167,9 +167,9 @@ var pgContext = app.Services.GetRequiredService<PostgresContext>();
 pgContext.RunMigrations();
 
 var postgres = app.Services.GetRequiredService<PostgresContext>();
-var mongo    = app.Services.GetRequiredService<MongoContext>();
+var mongo = app.Services.GetRequiredService<MongoContext>();
 
-await DbSeeder.SeedAsync(postgres, mongo, app.Environment.IsDevelopment(), env);
+await DbSeeder.SeedAsync(postgres, mongo, true, env);
 
 // middleware pipeline
 if (env.EnableSwagger)
