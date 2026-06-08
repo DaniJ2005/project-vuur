@@ -1,3 +1,4 @@
+import type { AdminRowPayload } from "./admin.types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "./admin.api";
 
@@ -55,7 +56,7 @@ export function useDeleteAdminPostgresRow() {
 export function useCreateAdminPostgresRow() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ tableName, payload }: { tableName: string; payload: Record<string, any> }) =>
+    mutationFn: ({ tableName, payload }: { tableName: string; payload: AdminRowPayload }) =>
       adminApi.createPostgresRow(tableName, payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: adminKeys.postgres }),
   });
@@ -64,7 +65,7 @@ export function useCreateAdminPostgresRow() {
 export function useUpdateAdminPostgresRow() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ tableName, id, payload }: { tableName: string; id: string; payload: Record<string, any> }) =>
+    mutationFn: ({ tableName, id, payload }: { tableName: string; id: string; payload: AdminRowPayload }) =>
       adminApi.updatePostgresRow(tableName, id, payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: adminKeys.postgres }),
   });
