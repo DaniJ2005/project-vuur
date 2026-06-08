@@ -72,6 +72,9 @@ services:
       # CORS_FRONTEND_ORIGIN: ${CORS_FRONTEND_ORIGIN}
       ENABLE_SWAGGER: ${ENABLE_SWAGGER}
 
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+
     depends_on:
       postgres:
         condition: service_healthy
