@@ -1,15 +1,12 @@
 using StackExchange.Redis;
 using Vuur.Api.Config;
+using Vuur.Api.Features.RefreshTokens;
 namespace Vuur.Api.Data;
 
 public class RedisContext
 {
     private readonly IConnectionMultiplexer _connection;
-    private IDatabase Db => _connection.GetDatabase();
-
-    private static readonly TimeSpan RefreshTokenTtl = TimeSpan.FromDays(7);
-
-    private static string RefreshTokenKey(string token) => $"refresh_token:{token}";
+    public IDatabase Db => _connection.GetDatabase();
 
     public RedisContext(EnvironmentVariables env, IWebHostEnvironment webHostEnv)
     {
@@ -27,16 +24,4 @@ public class RedisContext
 
         _connection = ConnectionMultiplexer.Connect(options);
     }
-
-    public async Task<Guid?> GetRefreshTokenAsync(string token)
-    {
-        var value = await Db.StringGetAsync(RefreshTokenKey(token));
-        return value.IsNullOrEmpty ? null : Guid.Parse((string)value!);
-    }
-
-    public async Task SetRefreshTokenAsync(string token, Guid userId)
-        => await Db.StringSetAsync(RefreshTokenKey(token), userId.ToString(), RefreshTokenTtl);
-
-    public async Task DeleteRefreshTokenAsync(string token)
-        => await Db.KeyDeleteAsync(RefreshTokenKey(token));
 }

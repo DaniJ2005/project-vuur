@@ -29,6 +29,7 @@ public class AuthService(
             LastName = req.LastName.Trim(),
             Email = emailNorm,
             RoleId = customerRole.Id,
+            RoleName = customerRole.RoleName,
         };
 
         user.PasswordHash = _hasher.HashPassword(user, req.Password);
@@ -62,7 +63,7 @@ public class AuthService(
         if (userId is null)
             return (false, "Refresh token is invalid or expired.", null);
 
-        var user = await userReadRepo.GetByIdAsUserAsync(userId.Value);
+        var user = await userReadRepo.GetByIdAsync(userId.Value);
         if (user is null)
             return (false, "User not found.", null);
 

@@ -5,7 +5,7 @@ namespace Vuur.Api.Features.Users;
 
 public class UserReadRepository(PostgresContext db)
 {
-    public async Task<UserWithRole?> GetByIdAsync(Guid id)
+    public async Task<User?> GetByIdAsync(Guid id)
     {
         const string sql = """
         SELECT u.*, r.role_name
@@ -16,7 +16,7 @@ public class UserReadRepository(PostgresContext db)
         """;
 
         using var conn = db.CreateConnection();
-        return await conn.QuerySingleOrDefaultAsync<UserWithRole>(sql, new { Id = id });
+        return await conn.QuerySingleOrDefaultAsync<User>(sql, new { Id = id });
     }
 
     public async Task<User?> GetByIdAsUserAsync(Guid id)

@@ -1,7 +1,11 @@
 namespace Vuur.Api.Features.Products;
 
-public interface IProductReadRepository<T>
+
+/// Read-only access to the product catalog (MongoDB).
+/// Injected into both the product feature and the admin controller.
+public interface IProductReadRepository
 {
-    Task<List<T>> GetAllAsync();
-    Task<T?> GetByIdAsync(string id);
+    Task<IReadOnlyList<Product>> GetAllAsync();
+    Task<Product?> GetByIdAsync(string id);
+    Task<IReadOnlyList<Product>> GetByIdsAsync(IReadOnlyList<string> ids);
 }
