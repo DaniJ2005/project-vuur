@@ -5,7 +5,7 @@ namespace Vuur.Api.Data;
 
 public class RedisContext
 {
-    private readonly IConnectionMultiplexer _connection;
+    public readonly IConnectionMultiplexer _connection;
     public IDatabase Db => _connection.GetDatabase();
 
     public RedisContext(EnvironmentVariables env, IWebHostEnvironment webHostEnv)
