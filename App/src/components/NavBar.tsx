@@ -173,6 +173,7 @@ const NavBar: React.FC = () => {
                 <Link to="/orders"   onClick={() => setMobileOpen(false)} className="block px-4 py-2 text-gray-300 hover:text-[#F25B29] text-sm font-medium">Mijn Bestellingen</Link>
                 <Link to="/wishlist" onClick={() => setMobileOpen(false)} className="block px-4 py-2 text-gray-300 hover:text-[#F25B29] text-sm font-medium">Wishlist</Link>
                 <Link to="/settings" onClick={() => setMobileOpen(false)} className="block px-4 py-2 text-gray-300 hover:text-[#F25B29] text-sm font-medium">Instellingen</Link>
+                <Link to="/admin" onClick={() => setMobileOpen(false)} className="block px-4 py-2 text-gray-300 hover:text-[#F25B29] text-sm font-medium">Admin Dashboard</Link>
                 <button
                   onClick={handleMobileLogout}
                   className="block w-full text-left px-4 py-2 text-red-400 hover:text-red-300 text-sm font-medium cursor-pointer"

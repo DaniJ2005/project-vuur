@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import GameCard from "../components/GameCard";
 import FilterPill from "../components/FilterPill";
 import FilterButton from "../components/FilterButton";
+import SearchIcon from "../components/icons/SearchIcon";
 import { useProducts } from "@/features/products/products.hooks";
 import { toCatalogGame } from "@/features/products/products.mapper";
 
@@ -341,7 +342,7 @@ const Catalog: React.FC = () => {
 
             {filteredGames.length === 0 ? (
               <div className="text-center py-24">
-                <div className="text-5xl mb-4">🔍</div>
+                <SearchIcon className="w-16 h-16 mx-auto mb-4 text-gray-600" />
                 <p className="text-gray-400 font-bold">Geen games gevonden</p>
                 <p className="text-gray-600 text-sm mt-1">Pas je filters aan</p>
                 {hasActiveFilters && (
