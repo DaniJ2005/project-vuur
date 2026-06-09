@@ -130,3 +130,8 @@ vuur_deploy_key.pub
 id_rsa
 id_ed25519
 *.pem
+
+#############################
+# AI documents
+#############################
+AGENTS.md
