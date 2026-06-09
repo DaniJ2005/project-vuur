@@ -8,6 +8,7 @@ import OrderRow from "@/components/OrderRow";
 
 const STATUS_STYLES: Record<OrderStatus, { label: string; cls: string }> = {
   pending: { label: "In behandeling", cls: "bg-amber-500/10 text-amber-400 border-amber-500/30" },
+  paid: { label: "Betaald",      cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" },
   fulfilled: { label: "Voltooid",    cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" },
   cancelled: { label: "Verzonden",   cls: "bg-blue-500/10 text-blue-400 border-blue-500/30" },
 };
@@ -54,7 +55,7 @@ const Orders: React.FC = () => {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Filter tabs */}
         <div className="flex flex-wrap gap-2 mb-6">
-          {(["all", "pending", "fulfilled", "cancelled"] as const).map((key) => (
+          {(["all", "pending", "paid", "fulfilled", "cancelled"] as const).map((key) => (
             <button
               key={key}
               onClick={() => setFilter(key)}

@@ -8,7 +8,9 @@ public class OrderRepository(PostgresContext db)
     /// <summary>
     /// Persists an order together with its line items in a single transaction.
     /// The order id/timestamps and each item's id/order_id/timestamps are assigned
-    /// here. Returns the persisted order. Game keys are assigned later (on payment).
+    /// here. Key-type lines also get a freshly generated game key per purchased
+    /// unit, inserted into <c>game_keys</c> within the same transaction.
+    /// Returns the persisted order.
     /// </summary>
     public async Task<Order> CreateAsync(Order order, IReadOnlyList<OrderItem> items)
     {
@@ -37,6 +39,13 @@ public class OrderRepository(PostgresContext db)
                 @Id, @OrderId, @ProductId, @ProductName, @ProductType, @Platform, @UnitPrice, @Quantity, @CreatedAt, @UpdatedAt);
             """;
 
+        const string keySql = """
+            INSERT INTO game_keys (
+                id, product_id, key_code, status, order_item_id, assigned_at, created_at, updated_at)
+            VALUES (
+                @Id, @ProductId, @KeyCode, @Status, @OrderItemId, @AssignedAt, @CreatedAt, @UpdatedAt);
+            """;
+
         using var conn = db.CreateConnection();
         using var tx = conn.BeginTransaction();
 
@@ -55,6 +64,29 @@ public class OrderRepository(PostgresContext db)
         {
             // Dapper runs the insert once per element when given a collection.
             await conn.ExecuteAsync(itemSql, items, tx);
+        }
+
+        // Generate one game key per purchased unit of each key-type line. We have
+        // no real inventory yet, so codes are minted here and stored as 'sold'
+        // rows linked to the order line.
+        var keys = items
+            .Where(i => i.ProductType == "key")
+            .SelectMany(i => Enumerable.Range(0, i.Quantity).Select(_ => new GameKey
+            {
+                Id = Guid.NewGuid(),
+                ProductId = i.ProductId,
+                KeyCode = GameKeyGenerator.Generate(),
+                Status = "sold",
+                OrderItemId = i.Id,
+                AssignedAt = now,
+                CreatedAt = now,
+                UpdatedAt = now,
+            }))
+            .ToList();
+
+        if (keys.Count > 0)
+        {
+            await conn.ExecuteAsync(keySql, keys, tx);
         }
 
         tx.Commit();

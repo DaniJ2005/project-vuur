@@ -6,7 +6,7 @@
 // the real API therefore also depends on the products API. The old types in
 // src/data/ordersData.ts are superseded by this file.
 
-export type OrderStatus = "pending" | "fulfilled" | "cancelled";
+export type OrderStatus = "pending" | "paid" | "fulfilled" | "cancelled";
 export type ProductType = "key" | "disc";
 
 export interface OrderItem {
