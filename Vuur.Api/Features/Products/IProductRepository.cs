@@ -1,8 +1,8 @@
 namespace Vuur.Api.Features.Products;
 
-public interface IProductRepository<T>
+public interface IProductRepository
 {
-    Task CreateAsync(T entity);
-    Task<bool> UpdateAsync(T entity);
+    Task<Product> CreateAsync(Product product);
+    Task<bool> UpdateAsync(Product product);
     Task<bool> DeleteAsync(string id);
 }

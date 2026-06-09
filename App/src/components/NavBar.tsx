@@ -17,6 +17,7 @@ const NAV_LINKS = [
   { href: "/catalog", label: "Catalogus" },
   { href: "/deals", label: "Deals" },
   { href: "/library", label: "Mijn Library" },
+  { href: "/admin", label: "Admin" },
 ] as const;
 
 // ── Component ──────────────────────────────────────────────────────────────────
@@ -28,6 +29,13 @@ const NavBar: React.FC = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const visibleLinks = NAV_LINKS.filter(link => {
+    if (link.href === "/admin") {
+      return user?.role === "Admin";
+    }
+    return true;
+  });
 
   const handleMobileLogout = () => {
     setMobileOpen(false);
@@ -62,7 +70,7 @@ const NavBar: React.FC = () => {
 
           {/* Desktop Nav Links */}
           <div className="hidden md:flex items-center gap-1">
-            {NAV_LINKS.map(({ href, label }) => (
+            {visibleLinks.map(({ href, label }) => (
               <Link
                 key={href}
                 to={href}
@@ -146,7 +154,7 @@ const NavBar: React.FC = () => {
         {/* Mobile Menu */}
         {mobileOpen && (
           <div className="md:hidden border-t border-[#1A1A1A] py-3 space-y-1">
-            {NAV_LINKS.map(({ href, label }) => (
+            {visibleLinks.map(({ href, label }) => (
               <Link
                 key={href}
                 to={href}
