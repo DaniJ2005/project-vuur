@@ -57,10 +57,6 @@ function Home() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-[#F25B29] opacity-10 rounded-full blur-[120px] pointer-events-none" />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center gap-2 bg-[#F25B29]/10 border border-[#F25B29]/30 rounded-full px-4 py-1.5 mb-8">
-            <span className="w-2 h-2 bg-[#F25B29] rounded-full animate-pulse" />
-            <span className="text-[#F25B29] text-sm font-medium">Honderden games beschikbaar</span>
-          </div>
 
           <h1 className="text-5xl md:text-7xl font-black text-white leading-none tracking-tight mb-6">
             Jouw games.<br />

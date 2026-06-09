@@ -5,6 +5,7 @@ import { cartTotal, cartCount } from "../types/game";
 import CloseIcon from "./icons/CloseIcon";
 import TrashIcon from "./icons/TrashIcon";
 import ArrowRightIcon from "./icons/ArrowRightIcon";
+import CartIcon from "./icons/CartIcon";
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
@@ -68,7 +69,7 @@ const CartSidebar: React.FC = () => {
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
           {isEmpty ? (
             <div className="flex flex-col items-center justify-center h-full text-center py-16">
-              <div className="text-5xl mb-4">🛒</div>
+              <CartIcon className="w-16 h-16 mb-4 text-gray-600" />
               <p className="text-gray-400 font-bold">Je winkelwagen is leeg</p>
               <p className="text-gray-600 text-sm mt-1">Voeg games toe om verder te gaan</p>
             </div>
