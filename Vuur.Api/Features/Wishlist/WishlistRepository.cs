@@ -11,7 +11,7 @@ public class WishlistRepository(PostgresContext db)
             INSERT INTO wishlist (id, user_id, products_id, created_at, updated_at)
             VALUES (@Id, @UserId, @ProductsId, @CreatedAt, @UpdatedAt)
             ON CONFLICT (user_id, products_id) DO UPDATE
-            SET amount = wishlist.amount + 1, updated_at = now()
+            SET updated_at = now()
             RETURNING *;
             """;
 
@@ -26,24 +26,6 @@ public class WishlistRepository(PostgresContext db)
             ProductsId = productsId,
             CreatedAt = now,
             UpdatedAt = now,
-        });
-    }
-
-    public async Task<WishlistItem?> UpdateAmountAsync(Guid userId, string productsId, int amount)
-    {
-        const string sql = """
-            UPDATE wishlist
-            SET amount = @Amount, updated_at = now()
-            WHERE user_id = @UserId AND products_id = @ProductsId
-            RETURNING *;
-            """;
-
-        using var conn = db.CreateConnection();
-        return await conn.QuerySingleOrDefaultAsync<WishlistItem>(sql, new
-        {
-            UserId = userId,
-            ProductsId = productsId,
-            Amount = amount,
         });
     }
 

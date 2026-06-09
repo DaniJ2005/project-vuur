@@ -14,17 +14,6 @@ public class WishlistService(WishlistRepository repo, WishlistReadRepository rea
         return ToResponse(item);
     }
 
-    public async Task<(bool success, string? error, WishlistItemResponse? item)> UpdateAmountAsync(
-        Guid userId,
-        string productsId,
-        int amount)
-    {
-        var item = await repo.UpdateAmountAsync(userId, productsId, amount);
-        return item is null
-            ? (false, "Product not found in wishlist.", null)
-            : (true, null, ToResponse(item));
-    }
-
     public async Task<(bool success, string? error)> RemoveAsync(Guid userId, string productsId)
     {
         var removed = await repo.RemoveAsync(userId, productsId);
@@ -32,5 +21,5 @@ public class WishlistService(WishlistRepository repo, WishlistReadRepository rea
     }
 
     private static WishlistItemResponse ToResponse(WishlistItem w) =>
-        new(w.Id, w.UserId, w.ProductsId, w.Amount, w.CreatedAt);
+        new(w.Id, w.UserId, w.ProductsId, w.CreatedAt);
 }

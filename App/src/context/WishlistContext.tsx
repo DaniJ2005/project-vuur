@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext } from "react";
-import { useWishlistQuery, useAddWishlist, useRemoveWishlist, useUpdateWishlistAmount } from '@/features/wishlist/wishlist.hooks';
+import { useWishlistQuery, useAddWishlist, useRemoveWishlist } from '@/features/wishlist/wishlist.hooks';
 
 type WishlistContextValue = {
   wishlist: string[];
@@ -9,7 +9,6 @@ type WishlistContextValue = {
   addToWishlist: (id: string) => void;
   removeFromWishlist: (id: string) => void;
   toggleWishlist: (id: string) => void;
-  updateAmount: (productsId: string, amount: number) => void;
   clear: () => void;
 };
 
@@ -19,7 +18,6 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
   const { data: items = [] } = useWishlistQuery();
   const addMutation = useAddWishlist();
   const removeMutation = useRemoveWishlist();
-  const updateAmountMutation = useUpdateWishlistAmount();
 
   const wishlist = items.map((i) => i.productsId);
 
@@ -42,10 +40,6 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
     await Promise.all(items.map((i) => removeMutation.mutateAsync(i.productsId)));
   }, [items, removeMutation]);
 
-  const updateAmount = useCallback((productsId: string, amount: number) => {
-    updateAmountMutation.mutate({ productsId, amount });
-  }, [updateAmountMutation]);
-
   return (
     <WishlistContext.Provider
       value={{
@@ -55,7 +49,6 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
         addToWishlist,
         removeFromWishlist,
         toggleWishlist,
-        updateAmount,
         clear,
       }}
     >

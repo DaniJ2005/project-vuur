@@ -22,15 +22,6 @@ export function useAddWishlist() {
   });
 }
 
-export function useUpdateWishlistAmount() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ productsId, amount }: { productsId: string; amount: number }) =>
-      wishlistApi.updateAmount(productsId, amount),
-    onSuccess: () => qc.invalidateQueries({ queryKey: wishlistKey }),
-  });
-}
-
 export function useRemoveWishlist() {
   const qc = useQueryClient();
   return useMutation({

@@ -1,13 +1,15 @@
 import React, { useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useWishlist } from "../context/WishlistContext";
+import { useWishlistQuery } from "../features/wishlist/wishlist.hooks";
 import { useCart } from "../context/CartContext";
 import { allGames } from "../data/catalogData";
 import { toCatalogGame } from "../types/game";
 import StarRating from "../components/StarRating";
 
 const Wishlist: React.FC = () => {
-  const { wishlist, removeFromWishlist } = useWishlist();
+  const { removeFromWishlist } = useWishlist();
+  const { data: items = [], isLoading, isError } = useWishlistQuery();
   const { addToCart, openCart } = useCart();
 
   useEffect(() => {
@@ -15,8 +17,11 @@ const Wishlist: React.FC = () => {
   }, []);
 
   const games = useMemo(
-    () => allGames.filter((g) => wishlist.includes(g.id)),
-    [wishlist]
+    () =>
+      items
+        .map((item) => allGames.find((g) => g.id === item.productsId))
+        .filter((game): game is (typeof allGames)[number] => Boolean(game)),
+    [items]
   );
 
   const moveToCart = (gameId: string) => {
@@ -41,7 +46,11 @@ const Wishlist: React.FC = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {games.length === 0 ? (
+        {isLoading ? (
+          <div className="text-center py-24 text-gray-400">Laden...</div>
+        ) : isError ? (
+          <div className="text-center py-24 text-red-400">Er is iets misgegaan bij het laden van je wishlist.</div>
+        ) : games.length === 0 ? (
           <div className="text-center py-24">
             <div className="text-5xl mb-4">⭐</div>
             <p className="text-gray-400 font-bold">Je wishlist is leeg</p>
