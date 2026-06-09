@@ -5,6 +5,7 @@ import { useCart } from "../context/CartContext";
 import { allGames } from "../data/catalogData";
 import { toCatalogGame } from "../types/game";
 import StarRating from "../components/StarRating";
+import StarIcon from "../components/icons/StarIcon";
 
 const Wishlist: React.FC = () => {
   const { wishlist, removeFromWishlist } = useWishlist();
@@ -43,7 +44,7 @@ const Wishlist: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {games.length === 0 ? (
           <div className="text-center py-24">
-            <div className="text-5xl mb-4">⭐</div>
+            <StarIcon className="w-16 h-16 mx-auto mb-4 text-gray-600" />
             <p className="text-gray-400 font-bold">Je wishlist is leeg</p>
             <p className="text-gray-600 text-sm mt-1">Klik op het hartje bij een game om hem toe te voegen</p>
             <Link to="/catalog" className="inline-block mt-4 text-[#F25B29] text-sm hover:underline">

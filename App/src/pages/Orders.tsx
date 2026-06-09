@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { mockOrders, type Order, type OrderStatus } from "../data/ordersData";
+import BoxIcon from "../components/icons/BoxIcon";
 
 const STATUS_STYLES: Record<OrderStatus, { label: string; cls: string }> = {
   delivered:  { label: "Bezorgd",     cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" },
@@ -187,7 +188,7 @@ const Orders: React.FC = () => {
 
         {orders.length === 0 ? (
           <div className="text-center py-24">
-            <div className="text-5xl mb-4">📦</div>
+            <BoxIcon className="w-16 h-16 mx-auto mb-4 text-gray-600" />
             <p className="text-gray-400 font-bold">Geen bestellingen gevonden</p>
             <p className="text-gray-600 text-sm mt-1">Pas je filter aan of ga winkelen</p>
             <Link to="/catalog" className="inline-block mt-4 text-[#F25B29] text-sm hover:underline">
