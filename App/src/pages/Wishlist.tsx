@@ -91,9 +91,11 @@ const Wishlist: React.FC = () => {
                 <div className="flex-1 min-w-0">
                   {product ? (
                     <>
-                      <h3 className="text-white font-bold text-sm hover:text-[#F25B29] transition-colors truncate">
-                        {product.productName}
-                      </h3>
+                      <Link to={`/game/${product.id}`} className="block">
+                        <h3 className="text-white font-bold text-sm hover:text-[#F25B29] transition-colors truncate">
+                          {product.productName}
+                        </h3>
+                      </Link>
                       <div className="flex flex-wrap items-center gap-2 mt-1">
                         <span className="text-gray-500 text-xs">{product.platform}</span>
                         <span className="text-gray-700">·</span>
