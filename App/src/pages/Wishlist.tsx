@@ -5,6 +5,7 @@ import { useWishlistQuery } from "../features/wishlist/wishlist.hooks";
 import { useProducts } from "../features/products/products.hooks";
 import { useCart } from "../context/CartContext";
 import StarRating from "../components/StarRating";
+import StarIcon from "../components/icons/StarIcon";
 import type { Product } from "../features/products/products.types";
 
 const Wishlist: React.FC = () => {
@@ -62,7 +63,7 @@ const Wishlist: React.FC = () => {
           <div className="text-center py-24 text-red-400">Er is iets misgegaan bij het laden van je wishlist.</div>
         ) : wishlistItems.length === 0 ? (
           <div className="text-center py-24">
-            <div className="text-5xl mb-4">⭐</div>
+            <StarIcon className="w-16 h-16 mx-auto mb-4 text-gray-600" />
             <p className="text-gray-400 font-bold">Je wishlist is leeg</p>
             <p className="text-gray-600 text-sm mt-1">Klik op het hartje bij een game om hem toe te voegen</p>
             <Link to="/catalog" className="inline-block mt-4 text-[#F25B29] text-sm hover:underline">
