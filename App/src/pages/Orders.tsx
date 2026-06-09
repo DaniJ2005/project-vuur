@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 // import type { Order, OrderStatus } from "../data/ordersData";
-import type { Order, OrderItem, OrderStatus } from "@/features/orders/orders.types"
+import type { OrderStatus } from "@/features/orders/orders.types"
 import BoxIcon from "../components/icons/BoxIcon";
 import { useOrders } from "../context/OrderContext";
 import OrderRow from "@/components/OrderRow";
@@ -23,7 +23,7 @@ const Orders: React.FC = () => {
   const filtered_orders = useMemo(() => {
     const sorted = [...orders].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
     return filter === "all" ? sorted : sorted.filter((o) => o.status === filter);
-  }, [filter]);
+  }, [filter, orders]);
 
   if (isLoading) {
     return (
