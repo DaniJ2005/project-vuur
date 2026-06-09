@@ -9,7 +9,7 @@ export function useWishlistQuery() {
   return useQuery({
     queryKey: wishlistKey,
     queryFn: wishlistApi.list,
-    enabled: !!user,
+    enabled: user !== undefined,
     staleTime: 5 * 60_000,
   });
 }
