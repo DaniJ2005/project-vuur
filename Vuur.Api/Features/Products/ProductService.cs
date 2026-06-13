@@ -1,16 +1,11 @@
 namespace Vuur.Api.Features.Products;
 
-/// <summary>
-/// Orchestrates cache-first reads and cache-invalidating writes.
-/// Maps between the domain model and request/response types inline —
-/// no AutoMapper needed for a model this simple.
-/// </summary>
+
 public class ProductService(
     IProductReadRepository readRepo,
     IProductRepository writeRepo,
     ProductCache cache)
 {
-    // ── Queries ───────────────────────────────────────────────────────────────
 
     public async Task<IReadOnlyList<Product>> GetAllAsync()
     {
@@ -34,25 +29,22 @@ public class ProductService(
         return product;
     }
 
-    // ── Commands ──────────────────────────────────────────────────────────────
 
     public async Task<Product> CreateAsync(CreateProductRequest req)
     {
+        var variants = MapVariants(req.Variants);
+
         var product = new Product
         {
-            ProductName        = req.ProductName.Trim(),
+            ProductName = req.ProductName.Trim(),
             ProductDescription = req.ProductDescription?.Trim(),
-            Platform           = req.Platform.Trim(),
-            Genre              = req.Genre.Trim(),
-            Type               = req.Type.Trim(),
-            Price              = req.Price,
-            OriginalPrice      = req.OriginalPrice,
-            DiscountPercent    = req.DiscountPercent,
-            Rating             = req.Rating,
-            IsNew              = req.IsNew,
-            IsFeatured         = req.IsFeatured,
-            CreatedAt          = DateTime.UtcNow,
-            UpdatedAt          = DateTime.UtcNow,
+            Genre = req.Genre.Trim(),
+            Variants = variants,
+            MinPrice = variants.Min(v => v.Price),
+            Rating = req.Rating,
+            Flags = NormalizeFlags(req.Flags),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
         };
 
         await writeRepo.CreateAsync(product);
@@ -66,17 +58,17 @@ public class ProductService(
         if (product is null) return false;
 
         // Only apply fields that were actually provided
-        if (req.ProductName        is not null) product.ProductName        = req.ProductName.Trim();
+        if (req.ProductName is not null) product.ProductName = req.ProductName.Trim();
         if (req.ProductDescription is not null) product.ProductDescription = req.ProductDescription.Trim();
-        if (req.Platform           is not null) product.Platform           = req.Platform.Trim();
-        if (req.Genre              is not null) product.Genre              = req.Genre.Trim();
-        if (req.Type               is not null) product.Type               = req.Type.Trim();
-        if (req.Price              is not null) product.Price              = req.Price.Value;
-        if (req.OriginalPrice      is not null) product.OriginalPrice      = req.OriginalPrice.Value;
-        if (req.DiscountPercent    is not null) product.DiscountPercent    = req.DiscountPercent.Value;
-        if (req.Rating             is not null) product.Rating             = req.Rating.Value;
-        if (req.IsNew              is not null) product.IsNew              = req.IsNew.Value;
-        if (req.IsFeatured         is not null) product.IsFeatured         = req.IsFeatured.Value;
+        if (req.Genre is not null) product.Genre = req.Genre.Trim();
+        if (req.Rating is not null) product.Rating = req.Rating.Value;
+        if (req.Flags is not null) product.Flags = NormalizeFlags(req.Flags);
+
+        if (req.Variants is not null)
+        {
+            product.Variants = MapVariants(req.Variants);
+            product.MinPrice = product.Variants.Count > 0 ? product.Variants.Min(v => v.Price) : 0m;
+        }
 
         product.UpdatedAt = DateTime.UtcNow;
 
@@ -84,6 +76,24 @@ public class ProductService(
         if (updated) await cache.InvalidateAsync(id);
         return updated;
     }
+
+
+    private static List<ProductVariant> MapVariants(IReadOnlyList<ProductVariantDto> dtos)
+        => dtos.Select(v => new ProductVariant
+        {
+            Platform = v.Platform.Trim(),
+            Format = v.Format.Trim().ToLower(), // "key" | "disc"
+            Price = v.Price,
+            OriginalPrice = v.OriginalPrice,
+            DiscountPercent = v.DiscountPercent,
+        }).ToList();
+
+    private static List<string> NormalizeFlags(IReadOnlyList<string>? flags)
+        => (flags ?? Array.Empty<string>())
+            .Select(f => f.Trim())
+            .Where(f => f.Length > 0)
+            .Distinct()
+            .ToList();
 
     public async Task<bool> DeleteAsync(string id)
     {

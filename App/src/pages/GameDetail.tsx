@@ -4,7 +4,6 @@ import { useCart } from "../context/CartContext";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { useWishlist } from "../context/WishlistContext";
 import GameCard from "../components/GameCard";
-import FrownIcon from "../components/icons/FrownIcon";
 
 import { useProduct, useProducts } from "@/features/products/products.hooks";
 import { toCatalogGame } from "@/features/products/products.mapper";
@@ -68,7 +67,6 @@ const GameDetail: React.FC = () => {
     return (
       <div className="pt-16 min-h-screen bg-[#0D0D0D] flex items-center justify-center">
         <div className="text-center">
-          <FrownIcon className="w-16 h-16 mx-auto mb-4 text-gray-600" />
           <p className="text-white font-bold text-xl">Game niet gevonden</p>
           <Link to="/catalog" className="text-[#F25B29] hover:underline text-sm mt-2 block">
             ← Terug naar catalogus

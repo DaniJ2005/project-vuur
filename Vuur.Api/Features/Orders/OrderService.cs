@@ -33,10 +33,23 @@ public class OrderService(OrderRepository repo, OrderReadRepository readRepo, Pr
                 throw new ArgumentException($"Product '{item.ProductId}' does not exist");
             }
 
-            itemsSubtotal += product.Price * item.Quantity;
+            // Resolve the specific variant the customer chose — its price and format
+            // are what get snapshotted onto the order line.
+            var format = item.Format.Trim().ToLowerInvariant();
+            var variant = product.Variants.FirstOrDefault(v =>
+                string.Equals(v.Platform, item.Platform.Trim(), StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(v.Format, format, StringComparison.OrdinalIgnoreCase));
+
+            if (variant is null)
+            {
+                throw new ArgumentException(
+                    $"Product '{item.ProductId}' is not available as {item.Platform}/{format}.");
+            }
+
+            itemsSubtotal += variant.Price * item.Quantity;
 
             // A disc is physical, so the whole order needs shipping.
-            if (product.Type == "disc")
+            if (variant.Format == "disc")
             {
                 requiresShipping = true;
             }
@@ -45,9 +58,9 @@ public class OrderService(OrderRepository repo, OrderReadRepository readRepo, Pr
             {
                 ProductId = product.Id,
                 ProductName = product.ProductName,
-                ProductType = product.Type,
-                Platform = product.Platform,
-                UnitPrice = product.Price,
+                ProductType = variant.Format,
+                Platform = variant.Platform,
+                UnitPrice = variant.Price,
                 Quantity = item.Quantity
             });
         }
