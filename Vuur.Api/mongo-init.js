@@ -15,6 +15,7 @@ db.products.createIndex({ ProductName: 'text', ProductDescription: 'text' });
 db.products.createIndex({ CreatedAt: -1, _id: -1 });
 db.products.createIndex({ MinPrice: 1, _id: 1 });
 db.products.createIndex({ Rating: -1, _id: -1 });
+db.products.createIndex({ ProductName: 1, _id: 1 });
 
 // Filters.
 db.products.createIndex({ Genre: 1 });

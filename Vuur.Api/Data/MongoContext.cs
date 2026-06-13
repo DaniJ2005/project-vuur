@@ -49,6 +49,7 @@ public class MongoContext
             new CreateIndexModel<Product>(keys.Descending(p => p.CreatedAt).Descending(p => p.Id)),
             new CreateIndexModel<Product>(keys.Ascending(p => p.MinPrice).Ascending(p => p.Id)),
             new CreateIndexModel<Product>(keys.Descending(p => p.Rating).Descending(p => p.Id)),
+            new CreateIndexModel<Product>(keys.Ascending(p => p.ProductName).Ascending(p => p.Id)), // A–Z sort
 
             // Filters.
             new CreateIndexModel<Product>(keys.Ascending(p => p.Genre)),

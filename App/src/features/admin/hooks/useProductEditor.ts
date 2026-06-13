@@ -1,23 +1,27 @@
 import { useState } from "react";
-import type { Product, CreateProductRequest } from "@/features/products/products.types";
+import type { Product, CreateProductRequest, ProductVariantInput } from "@/features/products/products.types";
+import type { GameType } from "@/types/game";
 import {
   useCreateProduct,
   useUpdateProduct,
   useDeleteProduct,
 } from "@/features/products/products.hooks";
 
-const emptyProduct: CreateProductRequest = {
-  productName: "",
-  productDescription: "",
-  platform: "",
-  genre: "",
-  type: "key",
+const emptyVariant: ProductVariantInput = {
+  platform: "Steam",
+  format: "key",
   price: 0,
   originalPrice: 0,
   discountPercent: 0,
+};
+
+const emptyProduct: CreateProductRequest = {
+  productName: "",
+  productDescription: "",
+  genre: "",
+  variants: [{ ...emptyVariant }],
   rating: 0,
-  isNew: false,
-  isFeatured: false,
+  flags: [],
 };
 
 export function useProductEditor(onMessage: (msg: string) => void, onRefetch: () => void) {
@@ -33,7 +37,7 @@ export function useProductEditor(onMessage: (msg: string) => void, onRefetch: ()
 
   const reset = () => {
     setEditingProduct(null);
-    setForm(emptyProduct);
+    setForm({ ...emptyProduct, variants: [{ ...emptyVariant }] });
   };
 
   const startEdit = (product: Product) => {
@@ -41,17 +45,41 @@ export function useProductEditor(onMessage: (msg: string) => void, onRefetch: ()
     setForm({
       productName: product.productName,
       productDescription: product.productDescription ?? "",
-      platform: product.platform,
       genre: product.genre,
-      type: product.type,
-      price: product.price,
-      originalPrice: product.originalPrice,
-      discountPercent: product.discountPercent,
+      variants: product.variants.map((v) => ({
+        platform: v.platform,
+        format: v.format,
+        price: v.price,
+        originalPrice: v.originalPrice,
+        discountPercent: v.discountPercent,
+      })),
       rating: product.rating,
-      isNew: product.isNew,
-      isFeatured: product.isFeatured,
+      flags: [...product.flags],
     });
   };
+
+  // ── Variant + flag helpers ───────────────────────────────────────────────────
+  const addVariant = () =>
+    setForm((f) => ({ ...f, variants: [...f.variants, { ...emptyVariant }] }));
+
+  const removeVariant = (index: number) =>
+    setForm((f) => ({ ...f, variants: f.variants.filter((_, i) => i !== index) }));
+
+  const updateVariant = <K extends keyof ProductVariantInput>(
+    index: number,
+    field: K,
+    value: ProductVariantInput[K],
+  ) =>
+    setForm((f) => ({
+      ...f,
+      variants: f.variants.map((v, i) => (i === index ? { ...v, [field]: value } : v)),
+    }));
+
+  const toggleFlag = (flag: string) =>
+    setForm((f) => ({
+      ...f,
+      flags: f.flags.includes(flag) ? f.flags.filter((x) => x !== flag) : [...f.flags, flag],
+    }));
 
   const save = async () => {
     if (editingProduct) {
@@ -65,9 +93,7 @@ export function useProductEditor(onMessage: (msg: string) => void, onRefetch: ()
     onRefetch();
   };
 
-  const openConfirmDelete = (product: Product) =>
-    setConfirmDeleteProduct({ open: true, product });
-
+  const openConfirmDelete = (product: Product) => setConfirmDeleteProduct({ open: true, product });
   const declineDelete = () => setConfirmDeleteProduct({ open: false });
 
   const confirmDelete = async () => {
@@ -89,8 +115,15 @@ export function useProductEditor(onMessage: (msg: string) => void, onRefetch: ()
     startEdit,
     reset,
     save,
+    addVariant,
+    removeVariant,
+    updateVariant,
+    toggleFlag,
     openConfirmDelete,
     declineDelete,
     confirmDelete,
   };
 }
+
+export const PLATFORM_OPTIONS = ["Steam", "PlayStation", "Xbox", "Nintendo"];
+export const FORMAT_OPTIONS: GameType[] = ["key", "disc"];

@@ -7,15 +7,24 @@ public class ProductService(
     ProductCache cache)
 {
 
-    public async Task<IReadOnlyList<Product>> GetAllAsync()
+    /// <summary>Cursor-paginated, filtered catalog page. Not cached (queries vary per filter).</summary>
+    public async Task<ProductPage> GetPageAsync(ProductQuery query)
+        => await readRepo.GetPageAsync(query);
+
+    /// <summary>Distinct genres + platforms for the filter sidebar (cached).</summary>
+    public async Task<ProductFacets> GetFacetsAsync()
     {
-        var cached = await cache.GetAllAsync();
+        var cached = await cache.GetFacetsAsync();
         if (cached is not null) return cached;
 
-        var products = await readRepo.GetAllAsync();
-        await cache.SetAllAsync(products);
-        return products;
+        var facets = await readRepo.GetFacetsAsync();
+        await cache.SetFacetsAsync(facets);
+        return facets;
     }
+
+    /// <summary>Batch fetch by id (used by the wishlist page).</summary>
+    public async Task<IReadOnlyList<Product>> GetByIdsAsync(IReadOnlyList<string> ids)
+        => ids.Count == 0 ? Array.Empty<Product>() : await readRepo.GetByIdsAsync(ids);
 
     public async Task<Product?> GetByIdAsync(string id)
     {
@@ -48,7 +57,7 @@ public class ProductService(
         };
 
         await writeRepo.CreateAsync(product);
-        await cache.InvalidateAllAsync();
+        await cache.InvalidateFacetsAsync(); // new genre/platform may have appeared
         return product;
     }
 

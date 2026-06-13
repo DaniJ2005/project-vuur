@@ -8,12 +8,36 @@ namespace Vuur.Api.Features.Products;
 [Produces("application/json")]
 public class ProductController(ProductService service) : ControllerBase
 {
-    // GET /api/products
+    // GET /api/products  (cursor-paginated + filtered)
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetPage(
+        [FromQuery] int limit = 20,
+        [FromQuery] string? cursor = null,
+        [FromQuery] string sort = "newest",
+        [FromQuery] string? search = null,
+        [FromQuery] string? platform = null,
+        [FromQuery] string? format = null,
+        [FromQuery] string? genre = null,
+        [FromQuery] decimal? maxPrice = null,
+        [FromQuery] string? flag = null)
     {
-        var products = await service.GetAllAsync();
-        return Ok(products);
+        var page = await service.GetPageAsync(
+            new ProductQuery(limit, cursor, sort, search, platform, format, genre, maxPrice, flag));
+        return Ok(page);
+    }
+
+    // GET /api/products/facets  (distinct genres + platforms for the filter sidebar)
+    [HttpGet("facets")]
+    public async Task<IActionResult> GetFacets()
+        => Ok(await service.GetFacetsAsync());
+
+    // GET /api/products/by-ids?ids=a,b,c  (batch fetch for the wishlist)
+    [HttpGet("by-ids")]
+    public async Task<IActionResult> GetByIds([FromQuery] string ids)
+    {
+        var idList = (ids ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return Ok(await service.GetByIdsAsync(idList));
     }
 
     // GET /api/products/{id}

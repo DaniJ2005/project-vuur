@@ -4,27 +4,18 @@ using Vuur.Api.Data;
 namespace Vuur.Api.Features.Products;
 
 /// <summary>
-/// Redis-backed cache for the product catalog.
-/// All entries expire after <see cref="Ttl"/>.
-/// Write operations (create/update/delete) must call the relevant Invalidate method.
+/// Redis-backed cache for single products and the filter facets. The paginated catalog
+/// list itself is not cached (it varies per filter/sort/cursor). All entries expire after
+/// <see cref="Ttl"/>; write operations must call the relevant Invalidate method.
 /// </summary>
 public class ProductCache(RedisContext redis)
 {
     private static readonly TimeSpan Ttl = TimeSpan.FromMinutes(10);
 
-    private static string AllKey => "products:all";
     private static string SingleKey(string id) => $"products:{id}";
+    private const string FacetsKey = "products:facets";
 
-    public async Task<IReadOnlyList<Product>?> GetAllAsync()
-    {
-        var value = await redis.Db.StringGetAsync(AllKey);
-        if (value.IsNullOrEmpty) return null;
-        return JsonSerializer.Deserialize<IReadOnlyList<Product>>((string)value!);
-    }
-
-    public async Task SetAllAsync(IReadOnlyList<Product> products)
-        => await redis.Db.StringSetAsync(AllKey, JsonSerializer.Serialize(products), Ttl);
-
+    // ── Single product ───────────────────────────────────────────────────────────
     public async Task<Product?> GetByIdAsync(string id)
     {
         var value = await redis.Db.StringGetAsync(SingleKey(id));
@@ -35,14 +26,24 @@ public class ProductCache(RedisContext redis)
     public async Task SetByIdAsync(Product product)
         => await redis.Db.StringSetAsync(SingleKey(product.Id), JsonSerializer.Serialize(product), Ttl);
 
-    /// <summary>Invalidates the single-product entry and the all-products list.</summary>
+    /// <summary>Invalidates the single-product entry and the facets (genre/platform may have changed).</summary>
     public async Task InvalidateAsync(string id)
     {
         await redis.Db.KeyDeleteAsync(SingleKey(id));
-        await redis.Db.KeyDeleteAsync(AllKey);
+        await redis.Db.KeyDeleteAsync(FacetsKey);
     }
 
-    /// <summary>Invalidates only the all-products list (used after create).</summary>
-    public async Task InvalidateAllAsync()
-        => await redis.Db.KeyDeleteAsync(AllKey);
+    // ── Facets ───────────────────────────────────────────────────────────────────
+    public async Task<ProductFacets?> GetFacetsAsync()
+    {
+        var value = await redis.Db.StringGetAsync(FacetsKey);
+        if (value.IsNullOrEmpty) return null;
+        return JsonSerializer.Deserialize<ProductFacets>((string)value!);
+    }
+
+    public async Task SetFacetsAsync(ProductFacets facets)
+        => await redis.Db.StringSetAsync(FacetsKey, JsonSerializer.Serialize(facets), Ttl);
+
+    public async Task InvalidateFacetsAsync()
+        => await redis.Db.KeyDeleteAsync(FacetsKey);
 }

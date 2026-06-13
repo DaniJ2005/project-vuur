@@ -6,6 +6,8 @@ namespace Vuur.Api.Features.Products;
 public interface IProductReadRepository
 {
     Task<IReadOnlyList<Product>> GetAllAsync();
+    Task<ProductPage> GetPageAsync(ProductQuery query);
+    Task<ProductFacets> GetFacetsAsync();
     Task<Product?> GetByIdAsync(string id);
     Task<IReadOnlyList<Product>> GetByIdsAsync(IReadOnlyList<string> ids);
 }

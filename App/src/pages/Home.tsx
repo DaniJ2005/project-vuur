@@ -1,5 +1,5 @@
 import { useAuth } from "@/features/auth/AuthProvider";
-import { useProducts } from "@/features/products/products.hooks";
+import { useProductsQuery } from "@/features/products/products.hooks";
 import { toCatalogGame } from "@/features/products/products.mapper";
 import { useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
@@ -10,10 +10,14 @@ import DataLoading from "../components/DataLoading";
 import ArrowRightIcon from "../components/icons/ArrowRightIcon";
 import { useCart } from "../context/CartContext";
 import { Platforms, USPs } from "../data/homeData";
+import type { CatalogGame } from "../types/game";
 
 function Home() {
   const { isAuthenticated } = useAuth();
-  const { data: products = [], isLoading } = useProducts();
+  const featuredQuery = useProductsQuery({ flag: "isFeatured", limit: 4 });
+  const newQuery = useProductsQuery({ flag: "isNew", sort: "newest", limit: 5 });
+  const statsQuery = useProductsQuery({ limit: 1 });
+  const cheapestQuery = useProductsQuery({ sort: "price_asc", limit: 1 });
   const { addToCart, openCart } = useCart();
   const navigate = useNavigate();
 
@@ -21,20 +25,31 @@ function Home() {
     document.title = "Home - VUUR";
   }, []);
 
-  const games         = useMemo(() => products.map(toCatalogGame), [products]);
-  const featuredGames = useMemo(() => games.filter((g) => g.isFeatured).slice(0, 4), [games]);
-  const newReleases   = useMemo(() => games.filter((g) => g.isNew).slice(0, 5), [games]);
+  const featuredGames = useMemo(
+    () => (featuredQuery.data?.items ?? []).map(toCatalogGame),
+    [featuredQuery.data],
+  );
+  const newReleases = useMemo(
+    () => (newQuery.data?.items ?? []).map(toCatalogGame),
+    [newQuery.data],
+  );
 
-  const totalCount  = games.length;
-  const lowestPrice = games.length > 0 ? Math.min(...games.map((g) => g.price)) : null;
+  const totalCount = statsQuery.data?.total ?? null;
+  const lowestPrice = cheapestQuery.data?.items[0]?.minPrice ?? null;
 
-  const statCount = isLoading ? "…" : `${totalCount.toLocaleString("nl-NL")}+`;
-  const statPrice = isLoading ? "…" : lowestPrice != null
+  const statCount = totalCount != null ? `${totalCount.toLocaleString("nl-NL")}+` : "…";
+  const statPrice = lowestPrice != null
     ? `€${lowestPrice.toFixed(2).replace(".", ",")}`
-    : "–";
+    : "…";
 
-  const handleAddToCart = (game: ReturnType<typeof toCatalogGame>) => {
-    addToCart(game);
+  const handleAddToCart = (game: CatalogGame) => {
+    addToCart({
+      id: game.id,
+      title: game.title,
+      platform: game.defaultVariant.platform,
+      format: game.defaultVariant.format,
+      price: game.defaultVariant.price,
+    });
     openCart();
   };
 
@@ -113,7 +128,7 @@ function Home() {
             </a>
           </div>
 
-          {isLoading ? (
+          {featuredQuery.isLoading ? (
             <DataLoading />
           ) : featuredGames.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -167,7 +182,7 @@ function Home() {
             </a>
           </div>
 
-          {isLoading ? (
+          {newQuery.isLoading ? (
             <DataLoading />
           ) : newReleases.length > 0 ? (
             <div className="space-y-3">

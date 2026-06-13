@@ -1,6 +1,6 @@
 import React from "react";
 import type { CartItem } from "../types/game";
-import { cartTotal } from "../types/game";
+import { cartTotal, lineKey } from "../types/game";
 
 type Props = {
   items: CartItem[];
@@ -18,7 +18,7 @@ const OrderSummary: React.FC<Props> = ({ items, shippingPrice = 0, showShipping 
         <h3 className="text-white font-black text-base mb-4">Jouw bestelling</h3>
         <div className="space-y-3 mb-4">
           {items.map((item) => (
-            <div key={item.game.id} className="flex gap-3">
+            <div key={lineKey(item.game)} className="flex gap-3">
               <div className="w-10 h-10 bg-[#1A1A1A] rounded-lg flex-shrink-0 overflow-hidden">
                 <img
                   src={`https://placehold.co/40x40/111111/F25B29?text=${encodeURIComponent(item.game.title.charAt(0))}`}
@@ -29,7 +29,7 @@ const OrderSummary: React.FC<Props> = ({ items, shippingPrice = 0, showShipping 
               <div className="flex-1 min-w-0">
                 <p className="text-white text-xs font-bold truncate">{item.game.title}</p>
                 <p className="text-gray-500 text-xs">
-                  {item.game.type === "disc" ? "Disc" : "Key"} · ×{item.quantity}
+                  {item.game.platform} · {item.game.format === "disc" ? "Disc" : "Key"} · ×{item.quantity}
                 </p>
               </div>
               <span className="text-[#F25B29] text-xs font-black">

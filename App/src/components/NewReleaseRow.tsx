@@ -3,9 +3,9 @@ import { useNavigate } from "react-router-dom";
 interface Game {
   id: string;
   title: string;
-  platform: string;
+  platforms: string[];
   genre: string;
-  price: number;
+  minPrice: number;
   imageUrl?: string;
 }
 
@@ -48,7 +48,7 @@ const NewReleaseRow: React.FC<Props> = ({ game, onAddToCart }) => {
           {game.title}
         </p>
         <p className="text-gray-500 text-xs mt-0.5">
-          {game.genre} · {game.platform}
+          {game.genre} · {game.platforms.join(" / ")}
         </p>
       </div>
 
@@ -58,8 +58,8 @@ const NewReleaseRow: React.FC<Props> = ({ game, onAddToCart }) => {
       </span>
 
       {/* Price */}
-      <span className="text-white font-bold text-sm flex-shrink-0 w-14 text-right">
-        €{game.price.toFixed(2).replace(".", ",")}
+      <span className="text-white font-bold text-sm flex-shrink-0 w-16 text-right">
+        €{game.minPrice.toFixed(2).replace(".", ",")}
       </span>
 
       {/* Add to cart */}

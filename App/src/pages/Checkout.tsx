@@ -9,7 +9,7 @@ import { useOrders } from "@/context/OrderContext";
 import type { Address } from "@/features/addresses/addresses.types";
 import type { CreateOrderRequest } from "@/features/orders/orders.types";
 
-import { cartHasDisc, cartTotal, type CartItem } from "../types/game";
+import { cartHasDisc, cartTotal, lineKey, type CartItem } from "../types/game";
 import OrderSummary from "../components/OrderSummary";
 
 const INPUT_CLASS =
@@ -67,7 +67,7 @@ const Checkout: React.FC = () => {
   const [confirmedItems, setConfirmedItems] = useState<CartItem[] | null>(null);
   const activeItems = confirmedItems ?? cartItems;
   const hasDisc = useMemo(() => cartHasDisc(activeItems), [activeItems]);
-  const hasKey = useMemo(() => activeItems.some((i) => i.game.type === "key"), [activeItems]);
+  const hasKey = useMemo(() => activeItems.some((i) => i.game.format === "key"), [activeItems]);
 
   // Step order is dynamic based on cart contents
   const stepOrder: Step[] = useMemo(
@@ -171,7 +171,12 @@ const Checkout: React.FC = () => {
       customerEmail: email,
       customerFirstName: firstName,
       customerLastName: lastName,
-      items: cartItems.map((i) => ({ productId: i.game.id, quantity: i.quantity })),
+      items: cartItems.map((i) => ({
+        productId: i.game.id,
+        platform: i.game.platform,
+        format: i.game.format,
+        quantity: i.quantity,
+      })),
       shippingMethod: hasDisc ? selectedShipping : undefined,
       shippingAddress: hasDisc
         ? { street, houseNumber, houseExt, postCode, city, countryCode: country }
@@ -187,7 +192,7 @@ const Checkout: React.FC = () => {
       setConfirmedItems(cartItems);
       setStep("confirmation");
       // Clear cart so navigating away does not re-trigger checkout for the same items
-      cartItems.forEach((i) => removeFromCart(i.game.id));
+      cartItems.forEach((i) => removeFromCart(lineKey(i.game)));
     } catch {
       setOrderError(
         "Er ging iets mis bij het plaatsen van je bestelling. Controleer je gegevens en probeer opnieuw.",
@@ -630,11 +635,11 @@ const Checkout: React.FC = () => {
               <div className="space-y-3 text-left mb-8">
                 <h3 className="text-white font-bold text-center mb-2">Jouw game keys</h3>
                 {activeItems
-                  .filter((item) => item.game.type === "key")
+                  .filter((item) => item.game.format === "key")
                   .flatMap((item) =>
                     // Eén key per stuk: een game met quantity 2 levert 2 keys op.
                     Array.from({ length: item.quantity }, (_, i) => {
-                      const keyId = `${item.game.id}-${i}`;
+                      const keyId = `${lineKey(item.game)}-${i}`;
                       const key = generateFakeKey(keyId);
                       const copied = copiedKeyId === keyId;
                       return (
@@ -671,8 +676,8 @@ const Checkout: React.FC = () => {
                 <h3 className="text-white font-bold mb-4">Bestelde producten</h3>
                 <div className="space-y-3">
                   {activeItems.map((item) => (
-                    <div key={item.game.id} className="flex items-center gap-3 py-2 border-b border-[#1A1A1A] last:border-0">
-                      <span className="text-lg">{item.game.type === "disc" ? "" : ""}</span>
+                    <div key={lineKey(item.game)} className="flex items-center gap-3 py-2 border-b border-[#1A1A1A] last:border-0">
+                      <span className="text-lg">{item.game.format === "disc" ? "" : ""}</span>
                       <div className="flex-1">
                         <p className="text-white text-sm font-bold">{item.game.title}</p>
                         <p className="text-gray-500 text-xs">x{item.quantity}</p>
