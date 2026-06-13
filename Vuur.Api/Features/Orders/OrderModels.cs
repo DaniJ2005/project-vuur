@@ -2,16 +2,17 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Vuur.Api.Features.Orders;
 
-// ─── Requests ────────────────────────────────────────────────────────────────
 
-/// <summary>One requested line. Price/name are NOT sent by the client — the
-/// server snapshots them from the catalogue so they can't be tampered with.</summary>
+// Prijs wordt niet meegestuurd in de CreateOrderRequest omdat die op het backend wordt bepaald
+// Dit voorkomt dat de client de prijs probeert te manipuleren
 public record CreateOrderItemRequest(
     [Required] string ProductId,
+    [Required] string Platform,
+    [Required] string Format,                 // 'key' | 'disc' — selects the variant
     [Range(1, int.MaxValue)] int Quantity
 );
 
-/// <summary>Delivery address. Omit (null) for key-only orders.</summary>
+// ShippingAddressRequest is optioneel  (key-only orders hebben geen verzendadres nodig)
 public record ShippingAddressRequest(
     [Required, MaxLength(200)] string Street,
     [Required, MaxLength(20)] string HouseNumber,
@@ -30,20 +31,18 @@ public record CreateOrderRequest(
     ShippingAddressRequest? ShippingAddress
 );
 
-// ─── Responses ───────────────────────────────────────────────────────────────
 
 public record OrderItemResponse(
     Guid Id,
     string ProductId,
     string ProductName,
-    string ProductType,        // 'key' | 'disc'
+    string ProductType, // 'key' | 'disc'
     string? Platform,
     decimal UnitPrice,
     int Quantity,
     IReadOnlyList<string> Keys // assigned activation codes; empty for disc items
 );
 
-/// <summary>Nested view of the snapshotted ship_* columns; null for key-only orders.</summary>
 public record ShippingAddressResponse(
     string Street,
     string HouseNumber,

@@ -169,6 +169,7 @@ pgContext.RunMigrations();
 var postgres = app.Services.GetRequiredService<PostgresContext>();
 var mongo = app.Services.GetRequiredService<MongoContext>();
 
+await mongo.EnsureIndexesAsync();
 await DbSeeder.SeedAsync(postgres, mongo, true, env);
 
 // middleware pipeline
