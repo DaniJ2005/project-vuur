@@ -78,7 +78,9 @@ public class OrderService(OrderRepository repo, OrderReadRepository readRepo, Pr
             CustomerEmail = customerEmail,
             CustomerFirstName = req.CustomerFirstName,
             CustomerLastName = req.CustomerLastName,
-            Status = "pending",
+            // Checkout's "pay" action is a single POST /api/orders, so a created
+            // order is already paid (payment is mock). Keys are minted on insert.
+            Status = "paid",
             RequiresShipping = requiresShipping,
             // Only carry a shipping method when something actually ships.
             ShippingMethod = requiresShipping ? req.ShippingMethod : null,
@@ -139,7 +141,13 @@ public class OrderService(OrderRepository repo, OrderReadRepository readRepo, Pr
         var items = await readRepo.GetItemsByOrderIdsAsync(orderIds);
         var itemsByOrder = items.ToLookup(i => i.OrderId);
 
-        return orders.Select(o => ToResponse(o, itemsByOrder[o.Id])).ToList();
+        // Load the keys for these items in one batch and group them per line.
+        var keys = await readRepo.GetKeysByOrderItemIdsAsync(items.Select(i => i.Id).ToList());
+        var keysByItem = keys
+            .Where(k => k.OrderItemId is not null)
+            .ToLookup(k => k.OrderItemId!.Value, k => k.KeyCode);
+
+        return orders.Select(o => ToResponse(o, itemsByOrder[o.Id], keysByItem)).ToList();
     }
 
     /// <summary>
@@ -153,7 +161,7 @@ public class OrderService(OrderRepository repo, OrderReadRepository readRepo, Pr
         _ => 4.99m // unknown/unspecified → standard
     };
 
-    private static OrderResponse ToResponse(Order o, IEnumerable<OrderItem> items) =>
+    private static OrderResponse ToResponse(Order o, IEnumerable<OrderItem> items, ILookup<Guid, string> keysByItem) =>
         new(
             o.Id,
             o.UserId,
@@ -181,7 +189,8 @@ public class OrderService(OrderRepository repo, OrderReadRepository readRepo, Pr
                 i.ProductType,
                 i.Platform,
                 i.UnitPrice,
-                i.Quantity)).ToList(),
+                i.Quantity,
+                keysByItem[i.Id].ToList())).ToList(),
             o.CreatedAt,
             o.UpdatedAt);
 }

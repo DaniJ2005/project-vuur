@@ -39,7 +39,8 @@ public record OrderItemResponse(
     string ProductType, // 'key' | 'disc'
     string? Platform,
     decimal UnitPrice,
-    int Quantity
+    int Quantity,
+    IReadOnlyList<string> Keys // assigned activation codes; empty for disc items
 );
 
 public record ShippingAddressResponse(
