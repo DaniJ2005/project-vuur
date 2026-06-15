@@ -35,6 +35,16 @@ public class EnvironmentVariables
   public string AdminPassword { get; }
   public string AdminEmail { get; }
 
+  // New role-based fields — all optional, app picks whichever is set
+  public string? PostgresAdminUser  { get; init; }
+  public string? PostgresAdminPassword  { get; init; }
+  public string? PostgresDevUser  { get; init; }
+  public string? PostgresDevPassword  { get; init; }
+  public string? PostgresSupportUser  { get; init; }
+  public string? PostgresSupportPassword  { get; init; }
+  public string? PostgresReadonlyUser { get; init; }
+  public string? PostgresReadonlyPassword { get; init; }
+
   public EnvironmentVariables(IConfiguration config)
   {
     // IConfiguration injecten om variables uit .env te halen
@@ -71,6 +81,15 @@ public class EnvironmentVariables
     //Admin account
     AdminPassword = Required("ADMIN_PASSWORD");
     AdminEmail = Required("ADMIN_EMAIL");
+
+    PostgresAdminUser        = Optional("POSTGRES_ADMIN_USER");
+    PostgresAdminPassword    = Optional("POSTGRES_ADMIN_PASSWORD");
+    PostgresDevUser          = Optional("POSTGRES_DEV_USER");
+    PostgresDevPassword      = Optional("POSTGRES_DEV_PASSWORD");
+    PostgresSupportUser      = Optional("POSTGRES_SUPPORT_USER");
+    PostgresSupportPassword  = Optional("POSTGRES_SUPPORT_PASSWORD");
+    PostgresReadonlyUser     = Optional("POSTGRES_READONLY_USER");
+    PostgresReadonlyPassword = Optional("POSTGRES_READONLY_PASSWORD");
 
     // Gebruiken voor debuggen om te checken of env vars goed geladen zijn
     PrintEnvironmentVariables();
