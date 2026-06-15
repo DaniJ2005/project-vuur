@@ -15,7 +15,6 @@ public record GameKeyResponse(
     Guid Id,
     string ProductId,
     string KeyCode,
-    string Status, // available | reserved | sold
     Guid? OrderItemId,
     DateTime? AssignedAt,
     DateTime CreatedAt,

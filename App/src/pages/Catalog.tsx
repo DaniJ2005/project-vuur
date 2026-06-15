@@ -21,9 +21,9 @@ const PRICE_RANGES: { label: string; max: number }[] = [
 
 const SORT_OPTIONS: { value: ProductSort; label: string }[] = [
   { value: "newest", label: "Nieuwste" },
-  { value: "name", label: "A–Z" },
-  { value: "price_asc", label: "Prijs: laag–hoog" },
-  { value: "price_desc", label: "Prijs: hoog–laag" },
+  { value: "name", label: "A-Z" },
+  { value: "price_asc", label: "Prijs: laag-hoog" },
+  { value: "price_desc", label: "Prijs: hoog-laag" },
   { value: "rating", label: "Beoordeling" },
 ];
 
@@ -86,14 +86,7 @@ const Catalog: React.FC = () => {
     [sortBy, search, selectedPlatform, selectedType, selectedGenre, maxPrice],
   );
 
-  const {
-    data,
-    isLoading,
-    isError,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useProductsInfinite(filters);
+  const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } = useProductsInfinite(filters);
 
   const games = useMemo(
     () => (data?.pages.flatMap((p) => p.items) ?? []).map(toCatalogGame),
@@ -188,7 +181,7 @@ const Catalog: React.FC = () => {
 
             <div>
               <label className="text-white text-xs font-bold uppercase tracking-wider block mb-2">Genre</label>
-              <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
+              <div className="space-y-1.5 max-h-72 overflow-y-auto scrollbar-thumb-[#F25B29] scrollbar-track-[#111] pr-1">
                 {allGenres.map((g) => (
                   <FilterButton key={g} label={g} active={selectedGenre === g} onClick={() => setSelectedGenre(g)} />
                 ))}

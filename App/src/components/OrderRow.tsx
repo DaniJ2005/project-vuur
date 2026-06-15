@@ -7,7 +7,7 @@ const STATUS_STYLES: Record<OrderStatus, { label: string; cls: string }> = {
   pending: { label: "In behandeling", cls: "bg-amber-500/10 text-amber-400 border-amber-500/30" },
   paid: { label: "Betaald",      cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" },
   fulfilled: { label: "Voltooid",    cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" },
-  cancelled: { label: "Verzonden",   cls: "bg-blue-500/10 text-blue-400 border-blue-500/30" },
+  cancelled: { label: "Geannuleerd", cls: "bg-red-500/10 text-red-400 border-red-500/30" },
 };
 
 const formatDate = (iso: string) =>
@@ -48,7 +48,7 @@ const OrderRow: React.FC<{ order: Order }> = ({ order }) => {
             </span>
           </div>
           <p className="text-gray-500 text-xs">
-            {formatDate(order.createdAt)} · {order.items.length} item(s) · { /*{order.paymentMethod}*/ }
+            {formatDate(order.createdAt)} · {order.items.length} item(s)
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -77,7 +77,7 @@ const OrderRow: React.FC<{ order: Order }> = ({ order }) => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <Link
-                      to={`/game/${item.id}`}
+                      to={`/game/${item.productId}`}
                       className="text-white text-sm font-bold hover:text-[#F25B29] transition-colors"
                     >
                       {item.productName}

@@ -1,7 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import type { CatalogGame } from "../types/game";
-import { useCart } from "../context/CartContext";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { useWishlist } from "../context/WishlistContext";
 import StarRating from "./StarRating";
@@ -11,23 +10,12 @@ type Props = {
 };
 
 const GameCard: React.FC<Props> = ({ game }) => {
-  const { addToCart, openCart } = useCart();
   const { isAuthenticated } = useAuth();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const inWishlist = isInWishlist(game.id);
 
   const multiVariant = game.platforms.length > 1 || game.formats.length > 1;
 
-  const quickAdd = () => {
-    addToCart({
-      id: game.id,
-      title: game.title,
-      platform: game.defaultVariant.platform,
-      format: game.defaultVariant.format,
-      price: game.defaultVariant.price,
-    });
-    openCart();
-  };
 
   return (
     <div className="group bg-[#111] border border-[#1E1E1E] hover:border-[#F25B29]/50 rounded-xl overflow-hidden transition-all duration-300 hover:shadow-[0_8px_30px_rgba(242,91,41,0.15)] hover:-translate-y-1 flex flex-col">
@@ -127,12 +115,12 @@ const GameCard: React.FC<Props> = ({ game }) => {
               <span className="text-[#F25B29] font-black text-xl">€{game.minPrice.toFixed(2)}</span>
             </div>
           </div>
-          <button
-            onClick={quickAdd}
+          <Link
+            to={`/game/${game.id}`}
             className="bg-[#F25B29] hover:bg-[#d94e22] text-white text-xs font-bold px-3 py-2 rounded-md transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
           >
-            + Kopen
-          </button>
+            Bekijken
+          </Link>
         </div>
       </div>
     </div>

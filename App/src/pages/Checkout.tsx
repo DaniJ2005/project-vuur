@@ -618,23 +618,12 @@ const Checkout: React.FC = () => {
             {hasKey && confirmedOrder && (
               <div className="space-y-3 text-left mb-8">
                 <h3 className="text-white font-bold text-center mb-2">Jouw game keys</h3>
-<!--  orders -->
                 {confirmedOrder.items
                   .filter((item) => item.productType === "key")
                   .flatMap((item) =>
                     // Eén key per stuk: een game met quantity 2 levert 2 keys op.
                     item.keys.map((key, i) => {
                       const copied = copiedKeyId === key;
-// =======
-                {activeItems
-                  .filter((item) => item.game.format === "key")
-                  .flatMap((item) =>
-                    // Eén key per stuk: een game met quantity 2 levert 2 keys op.
-                    Array.from({ length: item.quantity }, (_, i) => {
-                      const keyId = `${lineKey(item.game)}-${i}`;
-                      const key = generateFakeKey(keyId);
-                      const copied = copiedKeyId === keyId;
-//  products
                       return (
                         <div key={key} className="bg-[#111] border border-emerald-500/20 rounded-xl p-4">
                           <div className="flex items-center justify-between mb-3">
@@ -685,9 +674,9 @@ const Checkout: React.FC = () => {
             )}
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              {hasKey ? (
-                <Link to="/library" className="bg-[#F25B29] hover:bg-[#d94e22] text-white font-black px-8 py-3 rounded-xl transition-all">
-                  Naar Mijn Library
+              {isAuthenticated ? (
+                <Link to="/orders" className="bg-[#F25B29] hover:bg-[#d94e22] text-white font-black px-8 py-3 rounded-xl transition-all">
+                  Mijn bestellingen
                 </Link>
               ) : (
                 <button

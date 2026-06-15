@@ -31,7 +31,7 @@ public class ProductController(ProductService service) : ControllerBase
     public async Task<IActionResult> GetFacets()
         => Ok(await service.GetFacetsAsync());
 
-    // GET /api/products/by-ids?ids=a,b,c  (batch fetch for the wishlist)
+    // GET /api/products/by-ids?ids=a,b,c  (batch fetch)
     [HttpGet("by-ids")]
     public async Task<IActionResult> GetByIds([FromQuery] string ids)
     {

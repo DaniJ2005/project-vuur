@@ -41,9 +41,9 @@ public class OrderRepository(PostgresContext db)
 
         const string keySql = """
             INSERT INTO game_keys (
-                id, product_id, key_code, status, order_item_id, assigned_at, created_at, updated_at)
+                id, product_id, key_code, order_item_id, assigned_at, created_at, updated_at)
             VALUES (
-                @Id, @ProductId, @KeyCode, @Status, @OrderItemId, @AssignedAt, @CreatedAt, @UpdatedAt);
+                @Id, @ProductId, @KeyCode, @OrderItemId, @AssignedAt, @CreatedAt, @UpdatedAt);
             """;
 
         using var conn = db.CreateConnection();
@@ -67,8 +67,7 @@ public class OrderRepository(PostgresContext db)
         }
 
         // Generate one game key per purchased unit of each key-type line. We have
-        // no real inventory yet, so codes are minted here and stored as 'sold'
-        // rows linked to the order line.
+        // no real inventory — codes are minted here and stored linked to the order line.
         var keys = items
             .Where(i => i.ProductType == "key")
             .SelectMany(i => Enumerable.Range(0, i.Quantity).Select(_ => new GameKey
@@ -76,7 +75,6 @@ public class OrderRepository(PostgresContext db)
                 Id = Guid.NewGuid(),
                 ProductId = i.ProductId,
                 KeyCode = GameKeyGenerator.Generate(),
-                Status = "sold",
                 OrderItemId = i.Id,
                 AssignedAt = now,
                 CreatedAt = now,
