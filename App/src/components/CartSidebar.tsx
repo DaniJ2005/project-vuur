@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
-import { cartTotal, cartCount } from "../types/game";
+import { cartTotal, cartCount, cartHasDisc, lineKey } from "../types/game";
 import CloseIcon from "./icons/CloseIcon";
 import TrashIcon from "./icons/TrashIcon";
 import ArrowRightIcon from "./icons/ArrowRightIcon";
@@ -13,7 +13,7 @@ const CartSidebar: React.FC = () => {
   const { cartItems, cartOpen, closeCart, changeQty, removeFromCart } = useCart();
   const navigate = useNavigate();
   const total = cartTotal(cartItems);
-  const hasDisc = cartItems.some((i) => i.game.type === "disc");
+  const hasDisc = cartHasDisc(cartItems);
   const isEmpty = cartItems.length === 0;
 
   // Lock body scroll when open
@@ -77,7 +77,7 @@ const CartSidebar: React.FC = () => {
             <>
               {cartItems.map((item) => (
                 <div
-                  key={item.game.id}
+                  key={lineKey(item.game)}
                   className="flex gap-3 bg-[#0D0D0D] border border-[#1E1E1E] rounded-xl p-3 group"
                 >
                   {/* Thumbnail */}
@@ -93,7 +93,7 @@ const CartSidebar: React.FC = () => {
                   <div className="flex-1 min-w-0">
                     <p className="text-white text-sm font-bold truncate">{item.game.title}</p>
                     <div className="flex items-center gap-2 mt-0.5">
-                      {item.game.type === "key" ? (
+                      {item.game.format === "key" ? (
                         <span className="text-blue-400 text-xs">Key</span>
                       ) : (
                         <span className="text-amber-400 text-xs">Disc</span>
@@ -109,20 +109,20 @@ const CartSidebar: React.FC = () => {
                       {/* Quantity controls */}
                       <div className="flex items-center gap-1">
                         <button
-                          onClick={() => changeQty(item.game.id, -1)}
+                          onClick={() => changeQty(lineKey(item.game), -1)}
                           className="w-6 h-6 cursor-pointer rounded bg-[#1A1A1A] border border-[#2A2A2A] hover:border-[#F25B29]/30 text-gray-400 hover:text-white text-xs flex items-center justify-center transition-all"
                         >
                           −
                         </button>
                         <span className="text-white text-xs w-5 text-center">{item.quantity}</span>
                         <button
-                          onClick={() => changeQty(item.game.id, 1)}
+                          onClick={() => changeQty(lineKey(item.game), 1)}
                           className="w-6 h-6 cursor-pointer rounded bg-[#1A1A1A] border border-[#2A2A2A] hover:border-[#F25B29]/30 text-gray-400 hover:text-white text-xs flex items-center justify-center transition-all"
                         >
                           +
                         </button>
                         <button
-                          onClick={() => removeFromCart(item.game.id)}
+                          onClick={() => removeFromCart(lineKey(item.game))}
                           className="w-6 h-6 cursor-pointer rounded bg-[#1A1A1A] border border-[#2A2A2A] hover:border-red-500/30 text-gray-500 hover:text-red-400 text-xs flex items-center justify-center transition-all ml-1"
                           aria-label="Verwijderen"
                         >

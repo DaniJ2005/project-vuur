@@ -52,8 +52,10 @@ export interface Order {
 
 export interface CreateOrderItem {
   productId: string;
+  platform: string;          // selects the variant
+  format: ProductType;       // "key" | "disc"
   quantity: number;
-  // No price/name — the server snapshots those from the catalogue.
+  // No price/name — the server snapshots those from the chosen variant.
 }
 
 export interface CreateOrderShippingAddress {

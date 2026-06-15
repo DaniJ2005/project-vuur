@@ -7,9 +7,9 @@ import { useAddresses } from "../context/AddressContext";
 import { useOrders } from "@/context/OrderContext";
 
 import type { Address } from "@/features/addresses/addresses.types";
-import type { CreateOrderRequest } from "@/features/orders/orders.types";
+import type { CreateOrderRequest, Order } from "@/features/orders/orders.types";
 
-import { cartHasDisc, cartTotal, type CartItem } from "../types/game";
+import { cartHasDisc, cartTotal, lineKey, type CartItem } from "../types/game";
 import OrderSummary from "../components/OrderSummary";
 
 const INPUT_CLASS =
@@ -34,26 +34,6 @@ const SHIPPING_OPTIONS: ShippingOption[] = [
   { id: "same_day", icon: "", name: "Same Day",  desc: "Vandaag bezorgd", price: 9.99 },
 ];
 
-const KEY_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-
-// Deterministic fake gamekey (mock — replaces backend assignment).
-// Hashes the product id (ObjectId string) into a numeric seed first.
-const generateFakeKey = (id: string): string => {
-  let seed = 0;
-  for (let i = 0; i < id.length; i++) seed = (seed * 31 + id.charCodeAt(i)) | 0;
-  let state = seed * 31337;
-  const next = () => {
-    // Simple xorshift32
-    state ^= state << 13;
-    state ^= state >>> 17;
-    state ^= state << 5;
-    return Math.abs(state);
-  };
-  const part = () =>
-    Array.from({ length: 5 }, () => KEY_CHARS[next() % KEY_CHARS.length]).join("");
-  return `${part()}-${part()}-${part()}-${part()}`;
-};
-
 type Step = "details" | "delivery" | "payment" | "confirmation";
 
 const Checkout: React.FC = () => {
@@ -65,9 +45,11 @@ const Checkout: React.FC = () => {
 
   // Snapshot cart at the moment of payment so the confirmation page survives a clear.
   const [confirmedItems, setConfirmedItems] = useState<CartItem[] | null>(null);
+  // The order returned by the backend, carrying the real generated game keys.
+  const [confirmedOrder, setConfirmedOrder] = useState<Order | null>(null);
   const activeItems = confirmedItems ?? cartItems;
   const hasDisc = useMemo(() => cartHasDisc(activeItems), [activeItems]);
-  const hasKey = useMemo(() => activeItems.some((i) => i.game.type === "key"), [activeItems]);
+  const hasKey = useMemo(() => activeItems.some((i) => i.game.format === "key"), [activeItems]);
 
   // Step order is dynamic based on cart contents
   const stepOrder: Step[] = useMemo(
@@ -171,7 +153,12 @@ const Checkout: React.FC = () => {
       customerEmail: email,
       customerFirstName: firstName,
       customerLastName: lastName,
-      items: cartItems.map((i) => ({ productId: i.game.id, quantity: i.quantity })),
+      items: cartItems.map((i) => ({
+        productId: i.game.id,
+        platform: i.game.platform,
+        format: i.game.format,
+        quantity: i.quantity,
+      })),
       shippingMethod: hasDisc ? selectedShipping : undefined,
       shippingAddress: hasDisc
         ? { street, houseNumber, houseExt, postCode, city, countryCode: country }
@@ -182,12 +169,14 @@ const Checkout: React.FC = () => {
     setOrderError(null);
     try {
       // Wacht op de backend; pas bij succes snapshotten we de cart, tonen we de
-      // bevestiging en legen we de winkelwagen.
-      await createOrder(order); // OrderContext/hooks invalidate the orders cache on success
+      // bevestiging en legen we de winkelwagen. De response bevat de echte,
+      // opgeslagen game keys.
+      const created = await createOrder(order); // OrderContext/hooks invalidate the orders cache on success
+      setConfirmedOrder(created);
       setConfirmedItems(cartItems);
       setStep("confirmation");
       // Clear cart so navigating away does not re-trigger checkout for the same items
-      cartItems.forEach((i) => removeFromCart(i.game.id));
+      cartItems.forEach((i) => removeFromCart(lineKey(i.game)));
     } catch {
       setOrderError(
         "Er ging iets mis bij het plaatsen van je bestelling. Controleer je gegevens en probeer opnieuw.",
@@ -626,22 +615,20 @@ const Checkout: React.FC = () => {
             )}
 
             {/* Keys per game (only show if there are key items) */}
-            {hasKey && (
+            {hasKey && confirmedOrder && (
               <div className="space-y-3 text-left mb-8">
                 <h3 className="text-white font-bold text-center mb-2">Jouw game keys</h3>
-                {activeItems
-                  .filter((item) => item.game.type === "key")
+                {confirmedOrder.items
+                  .filter((item) => item.productType === "key")
                   .flatMap((item) =>
                     // Eén key per stuk: een game met quantity 2 levert 2 keys op.
-                    Array.from({ length: item.quantity }, (_, i) => {
-                      const keyId = `${item.game.id}-${i}`;
-                      const key = generateFakeKey(keyId);
-                      const copied = copiedKeyId === keyId;
+                    item.keys.map((key, i) => {
+                      const copied = copiedKeyId === key;
                       return (
-                        <div key={keyId} className="bg-[#111] border border-emerald-500/20 rounded-xl p-4">
+                        <div key={key} className="bg-[#111] border border-emerald-500/20 rounded-xl p-4">
                           <div className="flex items-center justify-between mb-3">
                             <p className="text-white font-bold">
-                              {item.game.title}
+                              {item.productName}
                               {item.quantity > 1 && (
                                 <span className="text-gray-500 font-normal"> · key {i + 1} van {item.quantity}</span>
                               )}
@@ -650,13 +637,13 @@ const Checkout: React.FC = () => {
                           </div>
                           <button
                             type="button"
-                            onClick={() => copyKey(keyId, key)}
+                            onClick={() => copyKey(key, key)}
                             className="w-full bg-[#0D0D0D] border border-[#2A2A2A] hover:border-[#F25B29]/50 cursor-pointer rounded-lg px-4 py-3 font-mono text-[#F25B29] text-sm tracking-widest text-center transition-all select-all"
                           >
                             {key}
                           </button>
                           <p className={`text-xs mt-2 text-center transition-colors ${copied ? "text-emerald-400" : "text-gray-600"}`}>
-                            {copied ? "Gekopieerd!" : `Klik op de key om te kopiëren · Activeer op ${item.game.platform}`}
+                            {copied ? "Gekopieerd!" : `Klik op de key om te kopiëren · Activeer op ${item.platform}`}
                           </p>
                         </div>
                       );
@@ -671,8 +658,8 @@ const Checkout: React.FC = () => {
                 <h3 className="text-white font-bold mb-4">Bestelde producten</h3>
                 <div className="space-y-3">
                   {activeItems.map((item) => (
-                    <div key={item.game.id} className="flex items-center gap-3 py-2 border-b border-[#1A1A1A] last:border-0">
-                      <span className="text-lg">{item.game.type === "disc" ? "" : ""}</span>
+                    <div key={lineKey(item.game)} className="flex items-center gap-3 py-2 border-b border-[#1A1A1A] last:border-0">
+                      <span className="text-lg">{item.game.format === "disc" ? "" : ""}</span>
                       <div className="flex-1">
                         <p className="text-white text-sm font-bold">{item.game.title}</p>
                         <p className="text-gray-500 text-xs">x{item.quantity}</p>
@@ -687,9 +674,9 @@ const Checkout: React.FC = () => {
             )}
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              {hasKey ? (
-                <Link to="/library" className="bg-[#F25B29] hover:bg-[#d94e22] text-white font-black px-8 py-3 rounded-xl transition-all">
-                  Naar Mijn Library
+              {isAuthenticated ? (
+                <Link to="/orders" className="bg-[#F25B29] hover:bg-[#d94e22] text-white font-black px-8 py-3 rounded-xl transition-all">
+                  Mijn bestellingen
                 </Link>
               ) : (
                 <button

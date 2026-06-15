@@ -39,4 +39,18 @@ public class OrderReadRepository(PostgresContext db)
         var rows = await conn.QueryAsync<OrderItem>(sql, new { OrderIds = orderIds.ToArray() });
         return rows.ToList();
     }
+
+    /// <summary>
+    /// Loads the game keys assigned to the given order items in one query (so the
+    /// service can hydrate keys without an N+1).
+    /// </summary>
+    public async Task<IReadOnlyList<GameKey>> GetKeysByOrderItemIdsAsync(IReadOnlyList<Guid> orderItemIds)
+    {
+        if (orderItemIds.Count == 0) return [];
+
+        const string sql = "SELECT * FROM game_keys WHERE order_item_id = ANY(@OrderItemIds) ORDER BY created_at;";
+        using var conn = db.CreateConnection();
+        var rows = await conn.QueryAsync<GameKey>(sql, new { OrderItemIds = orderItemIds.ToArray() });
+        return rows.ToList();
+    }
 }

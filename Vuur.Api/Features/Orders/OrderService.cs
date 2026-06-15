@@ -33,10 +33,23 @@ public class OrderService(OrderRepository repo, OrderReadRepository readRepo, Pr
                 throw new ArgumentException($"Product '{item.ProductId}' does not exist");
             }
 
-            itemsSubtotal += product.Price * item.Quantity;
+            // Resolve the specific variant the customer chose — its price and format
+            // are what get snapshotted onto the order line.
+            var format = item.Format.Trim().ToLowerInvariant();
+            var variant = product.Variants.FirstOrDefault(v =>
+                string.Equals(v.Platform, item.Platform.Trim(), StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(v.Format, format, StringComparison.OrdinalIgnoreCase));
+
+            if (variant is null)
+            {
+                throw new ArgumentException(
+                    $"Product '{item.ProductId}' is not available as {item.Platform}/{format}.");
+            }
+
+            itemsSubtotal += variant.Price * item.Quantity;
 
             // A disc is physical, so the whole order needs shipping.
-            if (product.Type == "disc")
+            if (variant.Format == "disc")
             {
                 requiresShipping = true;
             }
@@ -45,9 +58,9 @@ public class OrderService(OrderRepository repo, OrderReadRepository readRepo, Pr
             {
                 ProductId = product.Id,
                 ProductName = product.ProductName,
-                ProductType = product.Type,
-                Platform = product.Platform,
-                UnitPrice = product.Price,
+                ProductType = variant.Format,
+                Platform = variant.Platform,
+                UnitPrice = variant.Price,
                 Quantity = item.Quantity
             });
         }
@@ -65,7 +78,9 @@ public class OrderService(OrderRepository repo, OrderReadRepository readRepo, Pr
             CustomerEmail = customerEmail,
             CustomerFirstName = req.CustomerFirstName,
             CustomerLastName = req.CustomerLastName,
-            Status = "pending",
+            // Checkout's "pay" action is a single POST /api/orders, so a created
+            // order is already paid (payment is mock). Keys are minted on insert.
+            Status = "paid",
             RequiresShipping = requiresShipping,
             // Only carry a shipping method when something actually ships.
             ShippingMethod = requiresShipping ? req.ShippingMethod : null,
@@ -126,7 +141,13 @@ public class OrderService(OrderRepository repo, OrderReadRepository readRepo, Pr
         var items = await readRepo.GetItemsByOrderIdsAsync(orderIds);
         var itemsByOrder = items.ToLookup(i => i.OrderId);
 
-        return orders.Select(o => ToResponse(o, itemsByOrder[o.Id])).ToList();
+        // Load the keys for these items in one batch and group them per line.
+        var keys = await readRepo.GetKeysByOrderItemIdsAsync(items.Select(i => i.Id).ToList());
+        var keysByItem = keys
+            .Where(k => k.OrderItemId is not null)
+            .ToLookup(k => k.OrderItemId!.Value, k => k.KeyCode);
+
+        return orders.Select(o => ToResponse(o, itemsByOrder[o.Id], keysByItem)).ToList();
     }
 
     /// <summary>
@@ -140,7 +161,7 @@ public class OrderService(OrderRepository repo, OrderReadRepository readRepo, Pr
         _ => 4.99m // unknown/unspecified → standard
     };
 
-    private static OrderResponse ToResponse(Order o, IEnumerable<OrderItem> items) =>
+    private static OrderResponse ToResponse(Order o, IEnumerable<OrderItem> items, ILookup<Guid, string> keysByItem) =>
         new(
             o.Id,
             o.UserId,
@@ -168,7 +189,8 @@ public class OrderService(OrderRepository repo, OrderReadRepository readRepo, Pr
                 i.ProductType,
                 i.Platform,
                 i.UnitPrice,
-                i.Quantity)).ToList(),
+                i.Quantity,
+                keysByItem[i.Id].ToList())).ToList(),
             o.CreatedAt,
             o.UpdatedAt);
 }
