@@ -3,7 +3,6 @@ import React from "react";
 export type SegmentedOption = { value: string; label: string; disabled?: boolean };
 
 type Props = {
-  /** Unique radio-group name (so multiple groups on a page don't clash). */
   name: string;
   options: SegmentedOption[];
   value: string;
@@ -12,7 +11,6 @@ type Props = {
   ariaLabel?: string;
 };
 
-/** Accessible horizontal radio group rendered as a segmented control. */
 const SegmentedRadio: React.FC<Props> = ({ name, options, value, onChange, size = "md", ariaLabel }) => {
   const pad = size === "sm" ? "px-3 py-1.5 text-xs" : "px-4 py-2.5 text-sm";
 
