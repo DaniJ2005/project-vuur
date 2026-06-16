@@ -1,4 +1,4 @@
-﻿using Dapper;
+using Dapper;
 using Vuur.Api.Data;
 
 namespace Vuur.Api.Features.Users;

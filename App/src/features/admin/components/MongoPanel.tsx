@@ -1,5 +1,6 @@
 import type { Product, CreateProductRequest } from "@/features/products/products.types";
 import type { useProductEditor } from "../hooks/useProductEditor";
+import { PLATFORM_OPTIONS, FORMAT_OPTIONS } from "../hooks/useProductEditor";
 import { LoadingRows } from "./shared/LoadingRows";
 import { AdminInput, AdminNumber, AdminCheckbox } from "./shared/AdminInput";
 import { ConfirmModal } from "./shared/ConfirmModal";
@@ -13,10 +14,13 @@ interface MongoPanelProps {
   editor: ProductEditorState;
 }
 
+const platformsOf = (p: Product) => Array.from(new Set(p.variants.map((v) => v.platform)));
+const flagLabel = (flag: string) => (flag === "isNew" ? "Nieuw" : flag === "isFeatured" ? "Featured" : flag);
+
 export function MongoPanel({ products, isLoading, editor }: MongoPanelProps) {
   return (
     <>
-      <section className="grid lg:grid-cols-[360px_1fr] gap-6">
+      <section className="grid lg:grid-cols-[420px_1fr] gap-6">
         <ProductEditor editor={editor} />
         <ProductTable
           products={products}
@@ -44,8 +48,8 @@ export function MongoPanel({ products, isLoading, editor }: MongoPanelProps) {
           preview={
             <div className="space-y-1">
               <PreviewRow label="Naam" value={editor.confirmDeleteProduct.product.productName} />
-              <PreviewRow label="Platform" value={editor.confirmDeleteProduct.product.platform} />
-              <PreviewRow label="Prijs" value={`€${editor.confirmDeleteProduct.product.price.toFixed(2)}`} />
+              <PreviewRow label="Platforms" value={platformsOf(editor.confirmDeleteProduct.product).join(", ")} />
+              <PreviewRow label="Vanaf" value={`€${editor.confirmDeleteProduct.product.minPrice.toFixed(2)}`} />
             </div>
           }
           onConfirm={editor.confirmDelete}
@@ -66,7 +70,7 @@ function PreviewRow({ label, value }: { label: string; value: string }) {
 }
 
 function ProductEditor({ editor }: { editor: ProductEditorState }) {
-  const { form, setForm, editingProduct, isBusy, reset, save } = editor;
+  const { form, setForm, editingProduct, isBusy, reset, save, addVariant, removeVariant, updateVariant, toggleFlag } = editor;
 
   const update = <K extends keyof CreateProductRequest>(field: K, value: CreateProductRequest[K]) =>
     setForm({ ...form, [field]: value });
@@ -79,40 +83,73 @@ function ProductEditor({ editor }: { editor: ProductEditorState }) {
 
       <div className="space-y-3">
         <AdminInput label="Naam" value={form.productName} onChange={(v) => update("productName", v)} />
-        <AdminInput label="Omschrijving" value={form.productDescription} onChange={(v) => update("productDescription", v)} />
+        <AdminInput label="Omschrijving" value={form.productDescription ?? ""} onChange={(v) => update("productDescription", v)} />
         <div className="grid grid-cols-2 gap-3">
-          <AdminInput label="Platform" value={form.platform} onChange={(v) => update("platform", v)} />
           <AdminInput label="Genre" value={form.genre} onChange={(v) => update("genre", v)} />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <label className="block">
-            <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Type</span>
-            <select
-              value={form.type}
-              onChange={(e) => update("type", e.target.value)}
-              className="mt-1 w-full bg-[#0D0D0D] border border-[#2A2A2A] text-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#F25B29]"
-            >
-              <option value="key">Key</option>
-              <option value="disc">Disc</option>
-            </select>
-          </label>
           <AdminNumber label="Rating" value={form.rating} onChange={(v) => update("rating", v)} />
         </div>
-        <div className="grid grid-cols-3 gap-3">
-          <AdminNumber label="Prijs" value={form.price} onChange={(v) => update("price", v)} />
-          <AdminNumber label="Origineel" value={form.originalPrice} onChange={(v) => update("originalPrice", v)} />
-          <AdminNumber label="Korting" value={form.discountPercent} onChange={(v) => update("discountPercent", v)} />
+
+        {/* ── Variants ── */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Varianten</span>
+            <button
+              type="button"
+              onClick={addVariant}
+              className="text-[#F25B29] hover:text-[#d94e22] text-xs font-bold cursor-pointer"
+            >
+              + Variant
+            </button>
+          </div>
+
+          <div className="space-y-2">
+            {form.variants.map((v, i) => (
+              <div key={i} className="rounded-lg border border-[#2A2A2A] bg-[#0D0D0D] p-3 space-y-2">
+                <div className="flex gap-2">
+                  <select
+                    value={v.platform}
+                    onChange={(e) => updateVariant(i, "platform", e.target.value)}
+                    className="flex-1 bg-[#111] border border-[#2A2A2A] text-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:border-[#F25B29]"
+                  >
+                    {PLATFORM_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                  <select
+                    value={v.format}
+                    onChange={(e) => updateVariant(i, "format", e.target.value as "key" | "disc")}
+                    className="w-24 bg-[#111] border border-[#2A2A2A] text-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:border-[#F25B29]"
+                  >
+                    {FORMAT_OPTIONS.map((f) => <option key={f} value={f}>{f === "key" ? "Key" : "Disc"}</option>)}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => removeVariant(i)}
+                    disabled={form.variants.length <= 1}
+                    className="p-2 text-red-400 hover:bg-red-500/10 rounded-md cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                    aria-label="Variant verwijderen"
+                  >
+                    <TrashIcon className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <NumField label="Prijs" value={v.price} onChange={(n) => updateVariant(i, "price", n)} />
+                  <NumField label="Origineel" value={v.originalPrice} onChange={(n) => updateVariant(i, "originalPrice", n)} />
+                  <NumField label="Korting %" value={v.discountPercent} onChange={(n) => updateVariant(i, "discountPercent", n)} />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="flex gap-4">
-          <AdminCheckbox label="Nieuw" checked={form.isNew} onChange={(v) => update("isNew", v)} />
-          <AdminCheckbox label="Featured" checked={form.isFeatured} onChange={(v) => update("isFeatured", v)} />
+
+        <div className="flex gap-4 pt-1">
+          <AdminCheckbox label="Nieuw" checked={form.flags.includes("isNew")} onChange={() => toggleFlag("isNew")} />
+          <AdminCheckbox label="Featured" checked={form.flags.includes("isFeatured")} onChange={() => toggleFlag("isFeatured")} />
         </div>
       </div>
 
       <div className="flex gap-2 mt-5">
         <button
           onClick={save}
-          disabled={isBusy || !form.productName || !form.platform || !form.genre}
+          disabled={isBusy || !form.productName || !form.genre || form.variants.length === 0}
           className="flex-1 bg-[#F25B29] disabled:bg-[#3A2219] disabled:text-gray-500 hover:bg-[#d94e22] text-white rounded-lg px-4 py-2 text-sm font-bold transition-all cursor-pointer disabled:cursor-not-allowed"
         >
           {editingProduct ? "Opslaan" : "Aanmaken"}
@@ -128,6 +165,21 @@ function ProductEditor({ editor }: { editor: ProductEditorState }) {
         )}
       </div>
     </div>
+  );
+}
+
+function NumField({ label, value, onChange }: { label: string; value: number; onChange: (n: number) => void }) {
+  return (
+    <label className="block">
+      <span className="text-[10px] font-bold uppercase tracking-wider text-gray-600">{label}</span>
+      <input
+        type="number"
+        step="0.01"
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="mt-1 w-full bg-[#111] border border-[#2A2A2A] text-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:border-[#F25B29]"
+      />
+    </label>
   );
 }
 
@@ -158,9 +210,9 @@ function ProductTable({
             <thead className="text-gray-500 uppercase text-xs">
               <tr>
                 <th className="text-left px-5 py-3">Naam</th>
-                <th className="text-left px-5 py-3">Platform</th>
-                <th className="text-left px-5 py-3">Prijs</th>
-                <th className="text-left px-5 py-3">Status</th>
+                <th className="text-left px-5 py-3">Platforms</th>
+                <th className="text-left px-5 py-3">Vanaf</th>
+                <th className="text-left px-5 py-3">Flags</th>
                 <th className="text-right px-5 py-3">Acties</th>
               </tr>
             </thead>
@@ -168,12 +220,10 @@ function ProductTable({
               {products.map((product) => (
                 <tr key={product.id} className="hover:bg-[#151515]">
                   <td className="px-5 py-3 text-white font-bold">{product.productName}</td>
-                  <td className="px-5 py-3">{product.platform}</td>
-                  <td className="px-5 py-3">€{product.price.toFixed(2)}</td>
+                  <td className="px-5 py-3 text-gray-400">{platformsOf(product).join(", ")}</td>
+                  <td className="px-5 py-3">€{product.minPrice.toFixed(2)}</td>
                   <td className="px-5 py-3 text-gray-500">
-                    {[product.isNew && "Nieuw", product.isFeatured && "Featured"]
-                      .filter(Boolean)
-                      .join(", ") || "-"}
+                    {product.flags.length > 0 ? product.flags.map(flagLabel).join(", ") : "-"}
                   </td>
                   <td className="px-5 py-3">
                     <div className="flex justify-end gap-2">

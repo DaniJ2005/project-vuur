@@ -12,20 +12,39 @@ public class Product
     public string ProductName { get; set; } = null!;
     public string? ProductDescription { get; set; }
 
-    public string Platform { get; set; } = null!;
     public string Genre { get; set; } = null!;
 
-    /// <summary>"key" or "disc"</summary>
-    public string Type { get; set; } = null!;
+    // Elk Product heeft nu meerdere varianten voor verscillende platformen formaaten met eigen prijzen.
+    public List<ProductVariant> Variants { get; set; } = new();
 
-    public decimal Price { get; set; }
-    public decimal OriginalPrice { get; set; }
-    public decimal DiscountPercent { get; set; }
+
+    [BsonRepresentation(BsonType.Decimal128)]
+    public decimal MinPrice { get; set; }
+
+    [BsonRepresentation(BsonType.Decimal128)]
     public decimal Rating { get; set; }
 
-    public bool IsNew { get; set; }
-    public bool IsFeatured { get; set; }
+    // Voor property flags zoals: "bestseller", "new", "featured", etc...
+    public List<string> Flags { get; set; } = new();
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+}
+
+public class ProductVariant
+{
+    // "Steam", "Xbox", "Playstation", "PC", "Switch"
+    public string Platform { get; set; } = null!;
+
+    // "key" or "disc"
+    public string Format { get; set; } = null!;
+
+    [BsonRepresentation(BsonType.Decimal128)]
+    public decimal Price { get; set; }
+
+    [BsonRepresentation(BsonType.Decimal128)]
+    public decimal OriginalPrice { get; set; }
+
+    [BsonRepresentation(BsonType.Decimal128)]
+    public decimal DiscountPercent { get; set; }
 }

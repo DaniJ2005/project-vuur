@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useState } from "react";
 import type { CartGame, CartItem } from "../types/game";
+import { lineKey } from "../types/game";
 
 type CartContextValue = {
   cartItems: CartItem[];
@@ -8,8 +9,8 @@ type CartContextValue = {
   openCart: () => void;
   closeCart: () => void;
   addToCart: (game: CartGame) => void;
-  changeQty: (gameId: string, delta: number) => void;
-  removeFromCart: (gameId: string) => void;
+  changeQty: (key: string, delta: number) => void;
+  removeFromCart: (key: string) => void;
 };
 
 const CartContext = createContext<CartContextValue | undefined>(undefined);
@@ -21,28 +22,29 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const openCart = useCallback(() => setCartOpen(true), []);
   const closeCart = useCallback(() => setCartOpen(false), []);
 
+  // A cart line is identified by product + platform + format, so the same game on
+  // two platforms (or key vs disc) are separate lines.
   const addToCart = useCallback((game: CartGame) => {
+    const key = lineKey(game);
     setCartItems((prev) => {
-      const existing = prev.find((i) => i.game.id === game.id);
+      const existing = prev.find((i) => lineKey(i.game) === key);
       if (existing) {
-        return prev.map((i) =>
-          i.game.id === game.id ? { ...i, quantity: i.quantity + 1 } : i
-        );
+        return prev.map((i) => (lineKey(i.game) === key ? { ...i, quantity: i.quantity + 1 } : i));
       }
       return [...prev, { game, quantity: 1 }];
     });
   }, []);
 
-  const changeQty = useCallback((gameId: string, delta: number) => {
+  const changeQty = useCallback((key: string, delta: number) => {
     setCartItems((prev) =>
       prev
-        .map((i) => (i.game.id === gameId ? { ...i, quantity: i.quantity + delta } : i))
-        .filter((i) => i.quantity > 0)
+        .map((i) => (lineKey(i.game) === key ? { ...i, quantity: i.quantity + delta } : i))
+        .filter((i) => i.quantity > 0),
     );
   }, []);
 
-  const removeFromCart = useCallback((gameId: string) => {
-    setCartItems((prev) => prev.filter((i) => i.game.id !== gameId));
+  const removeFromCart = useCallback((key: string) => {
+    setCartItems((prev) => prev.filter((i) => lineKey(i.game) !== key));
   }, []);
 
   return (

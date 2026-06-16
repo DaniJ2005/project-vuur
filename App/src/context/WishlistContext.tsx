@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useCallback, useContext, useState } from "react";
+import { createContext, useCallback, useContext } from "react";
+import { useWishlistQuery, useAddWishlist, useRemoveWishlist } from '@/features/wishlist/wishlist.hooks';
 
 type WishlistContextValue = {
   wishlist: string[];
@@ -13,33 +14,31 @@ type WishlistContextValue = {
 
 const WishlistContext = createContext<WishlistContextValue | undefined>(undefined);
 
-// Seed with a couple of titles so the UI is not empty on first load.
-// IDs match catalogData: Silksong, Split Fiction, Baldur's Gate 3.
-// TODO: replace with GET /api/wishlist when backend exists.
-const INITIAL_WISHLIST: string[] = [
-  "6650a1b2c3d4e5f600000005",
-  "6650a1b2c3d4e5f600000008",
-  "6650a1b2c3d4e5f60000000d",
-];
-
 export function WishlistProvider({ children }: { children: React.ReactNode }) {
-  const [wishlist, setWishlist] = useState<string[]>(INITIAL_WISHLIST);
+  const { data: items = [] } = useWishlistQuery();
+  const addMutation = useAddWishlist();
+  const removeMutation = useRemoveWishlist();
+
+  const wishlist = items.map((i) => i.productsId);
 
   const isInWishlist = useCallback((id: string) => wishlist.includes(id), [wishlist]);
 
   const addToWishlist = useCallback((id: string) => {
-    setWishlist((prev) => (prev.includes(id) ? prev : [...prev, id]));
-  }, []);
+    addMutation.mutate(id);
+  }, [addMutation]);
 
   const removeFromWishlist = useCallback((id: string) => {
-    setWishlist((prev) => prev.filter((x) => x !== id));
-  }, []);
+    removeMutation.mutate(id);
+  }, [removeMutation]);
 
   const toggleWishlist = useCallback((id: string) => {
-    setWishlist((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-  }, []);
+    if (wishlist.includes(id)) removeMutation.mutate(id);
+    else addMutation.mutate(id);
+  }, [wishlist, addMutation, removeMutation]);
 
-  const clear = useCallback(() => setWishlist([]), []);
+  const clear = useCallback(async () => {
+    await Promise.all(items.map((i) => removeMutation.mutateAsync(i.productsId)));
+  }, [items, removeMutation]);
 
   return (
     <WishlistContext.Provider
