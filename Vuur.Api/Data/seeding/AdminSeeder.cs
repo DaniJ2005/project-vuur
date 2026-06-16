@@ -10,7 +10,7 @@ internal static class AdminSeeder
 {
     public static async Task SeedAsync(PostgresContext postgres, EnvironmentVariables env)
     {
-        using var conn = postgres.CreateConnection();
+        var conn = postgres.CreateMasterConnection();
 
         var adminRoleId = await conn.ExecuteScalarAsync<Guid>(
             "SELECT id FROM roles WHERE role_name = 'admin'");

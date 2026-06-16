@@ -169,10 +169,8 @@ pgContext.RunMigrations();
 var postgres = app.Services.GetRequiredService<PostgresContext>();
 var mongo = app.Services.GetRequiredService<MongoContext>();
 
-if (pgContext.IsAdmin)
-{
-    await DbSeeder.SeedAsync(postgres, mongo, true, env);
-}
+
+await DbSeeder.SeedAsync(postgres, mongo, true, env);
 
 // middleware pipeline
 if (env.EnableSwagger)

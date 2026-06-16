@@ -15,7 +15,12 @@ public class AdminUserRepository(PostgresContext db)
 
     public async Task<AdminUserResponse?> CreateAsync(AdminCreateUserRequest req)
     {
-        using var conn = db.CreateConnection();
+        var conn = db.CreateRoleConnection();
+
+        if (db.IsAdmin)
+            conn = db.CreateMasterConnection();
+        
+
         var emailExists = await conn.ExecuteScalarAsync<bool>(
         "SELECT EXISTS(SELECT 1 FROM users WHERE LOWER(email) = LOWER(@Email))",
         new { req.Email });

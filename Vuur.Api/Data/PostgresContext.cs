@@ -13,11 +13,15 @@ public class PostgresContext
     private readonly string host;
     private readonly string port;
     private readonly string db;
+
+    // Runtime credentials
     private readonly string user;
     private readonly string pass;
 
-    private readonly string migrationUser;
-    private readonly string migrationPass;
+    // Master credentials
+    // always the base POSTGRES_USER, used for migrations + seeding
+    private readonly string masterUser;
+    private readonly string masterPass;
 
     public DbRole Role { get; }
     public enum DbRole { Admin, Dev, Support, ReadOnly }
@@ -27,6 +31,10 @@ public class PostgresContext
         host = env.PostgresHost ?? "postgres";
         port = env.PostgresPort ?? "5432";
         db = env.PostgresDb;
+
+        // every dev has this
+        masterUser = env.PostgresUser;
+        masterPass = env.PostgresPassword;
         
         // Pick the highest privilege role that is fully configured
         if (IsSet(env.PostgresAdminUser, env.PostgresAdminPassword))
@@ -55,32 +63,35 @@ public class PostgresContext
         }
         else
         {
-            throw new InvalidOperationException(
-                "Geen PostgreSQL role geconfigureerd in je .env. " +
-                "Voeg minstens 1 van de volgende paren toe: " +
-                "POSTGRES_ADMIN_USER/PASSWORD, POSTGRES_DEV_USER/PASSWORD, " +
-                "POSTGRES_SUPPORT_USER/PASSWORD of POSTGRES_READONLY_USER/PASSWORD. " +
-                "Zie README sectie 'Database toegang'.");
+            user = masterUser;
+            pass = masterPass;
+            Role  = DbRole.Admin;
         }
-
-        // Migrations always use admin credentials
-        // Falls back to base POSTGRES_USER/PASSWORD if no admin role is set
-        migrationUser = env.PostgresAdminUser ?? env.PostgresUser;
-        migrationPass = env.PostgresAdminPassword ?? env.PostgresPassword;
     }
 
     public IDbConnection CreateConnection()
+    {
+        var conn = new NpgsqlConnection(Build(masterUser, masterPass));
+        conn.Open();
+        return conn;
+    }
+
+    public IDbConnection CreateRoleConnection()
     {
         var conn = new NpgsqlConnection(Build(user, pass));
         conn.Open();
         return conn;
     }
 
-    public void RunMigrations()
+    public IDbConnection CreateMasterConnection()
     {
-        // Always uses admin/base credentials — never the restricted role
-        MigrationRunner.Run(Build(migrationUser, migrationPass));
+        var conn = new NpgsqlConnection(Build(masterUser, masterPass));
+        conn.Open();
+        return conn;
     }
+
+    public void RunMigrations()
+        =>  MigrationRunner.Run(Build(masterUser, masterPass));
 
     public bool CanWrite    => Role is DbRole.Admin or DbRole.Dev;
     public bool CanSeePII   => Role is DbRole.Admin or DbRole.Support;
