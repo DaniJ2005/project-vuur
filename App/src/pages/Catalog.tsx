@@ -70,6 +70,18 @@ const Catalog: React.FC = () => {
     return () => window.clearTimeout(t);
   }, [searchInput]);
 
+  // Sync with the navbar search: when the `q` URL param changes (e.g. a search
+  // fired while already on this page), update both the input and active query.
+  // Adjusted during render rather than in an effect (the recommended pattern):
+  // typing in the sidebar search leaves `q` untouched, so it stays independent.
+  const queryParam = searchParams.get("q") ?? "";
+  const [prevQueryParam, setPrevQueryParam] = useState(queryParam);
+  if (queryParam !== prevQueryParam) {
+    setPrevQueryParam(queryParam);
+    setSearchInput(queryParam);
+    setSearch(queryParam);
+  }
+
   const { data: facets } = useProductFacets();
   const allPlatforms = useMemo(() => ["Alle", ...(facets?.platforms ?? [])], [facets]);
   const allGenres = useMemo(() => ["Alle", ...(facets?.genres ?? [])], [facets]);
