@@ -1,11 +1,8 @@
--- BENCHMARK — Catalogus laadtijd (NFR < 2 seconden)
--- Aansluitend op: "Benchmark NFR: GET /api/products < 2s"
--- Draai in psql met \timing voor automatische tijdmeting
+-- BENCHMARK
 
 \timing on
 
--- TEST A: Catalogus cold — geen cache (simuleert cache miss)
---   Dit is wat de API doet als Redis leeg is / TTL verlopen
+-- TEST A: Get all orders
 SELECT
     o.status,
     COUNT(*)                         AS aantal_orders,
@@ -29,4 +26,3 @@ WHERE w.user_id = (
 ORDER BY w.created_at DESC;
 
 \timing off
-
