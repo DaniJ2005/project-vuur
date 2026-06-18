@@ -5,10 +5,7 @@ using Vuur.Api.Features.Users;
 
 namespace Vuur.Api.Features.Admin;
 
-/// <summary>
-/// Admin-only write operations on users that don't belong in the regular
-/// UserRepository (which is scoped to self-service auth flows).
-/// </summary>
+
 public class AdminUserRepository(PostgresContext db)
 {
     private readonly PasswordHasher<User> _hasher = new();
@@ -30,12 +27,12 @@ public class AdminUserRepository(PostgresContext db)
 
         var user = new User
         {
-            Id        = Guid.NewGuid(),
+            Id = Guid.NewGuid(),
             FirstName = req.FirstName.Trim(),
-            LastName  = req.LastName.Trim(),
-            Email     = req.Email.ToLowerInvariant(),
-            RoleId    = role.Id,
-            RoleName  = role.RoleName,
+            LastName = req.LastName.Trim(),
+            Email = req.Email.ToLowerInvariant(),
+            RoleId = role.Id,
+            RoleName = role.RoleName,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
         };
@@ -61,14 +58,14 @@ public class AdminUserRepository(PostgresContext db)
     public async Task<AdminUserResponse?> UpdateAsync(Guid id, AdminUpdateUserRequest req)
     {
         // Build the SET clause dynamically based on which fields were provided.
-        var sets  = new List<string> { "updated_at = @Now" };
+        var sets = new List<string> { "updated_at = @Now" };
         var param = new DynamicParameters();
-        param.Add("@Id",  id);
+        param.Add("@Id", id);
         param.Add("@Now", DateTime.UtcNow);
 
         if (req.FirstName is not null) { sets.Add("first_name = @FirstName"); param.Add("@FirstName", req.FirstName.Trim()); }
-        if (req.LastName  is not null) { sets.Add("last_name  = @LastName");  param.Add("@LastName",  req.LastName.Trim());  }
-        if (req.Email     is not null) { sets.Add("email      = @Email");     param.Add("@Email",     req.Email.ToLowerInvariant()); }
+        if (req.LastName is not null) { sets.Add("last_name  = @LastName"); param.Add("@LastName", req.LastName.Trim()); }
+        if (req.Email is not null) { sets.Add("email      = @Email"); param.Add("@Email", req.Email.ToLowerInvariant()); }
 
         if (req.Role is not null)
         {

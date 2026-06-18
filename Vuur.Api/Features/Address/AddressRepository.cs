@@ -51,7 +51,6 @@ public class AddressRepository(PostgresContext db)
         return await conn.QuerySingleOrDefaultAsync<Address>(sql, address);
     }
 
-    /// <summary>Clear the default flag on all of the user's addresses except one.</summary>
     public async Task ClearDefaultAsync(Guid userId, Guid exceptId)
     {
         const string sql = """
@@ -64,7 +63,6 @@ public class AddressRepository(PostgresContext db)
         await conn.ExecuteAsync(sql, new { UserId = userId, ExceptId = exceptId });
     }
 
-    /// <summary>Set a single address as the user's default (caller must clear others first).</summary>
     public async Task<Address?> SetDefaultAsync(Guid id, Guid userId)
     {
         const string sql = """

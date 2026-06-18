@@ -15,7 +15,7 @@ export const api = axios.create({
   withCredentials: true, // stuur cookies mee op elk request
 });
 
-// --- REFRESH dedup: bij meerdere parallelle 401's slechts één refresh call --
+//  REFRESH dedup: bij meerdere parallelle 401's slechts één refresh call 
 let refreshPromise: Promise<boolean> | null = null;
 
 async function refreshTokens(): Promise<boolean> {
@@ -27,7 +27,7 @@ async function refreshTokens(): Promise<boolean> {
   }
 }
 
-// --- RESPONSE interceptor: 401 → refresh → retry ----------------------------
+//  RESPONSE interceptor: 401 → refresh → retry 
 type RetryConfig = AxiosRequestConfig & { _retry?: boolean };
 
 api.interceptors.response.use(

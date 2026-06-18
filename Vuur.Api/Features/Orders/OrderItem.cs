@@ -1,16 +1,11 @@
 namespace Vuur.Api.Features.Orders;
 
-/// <summary>
-/// A single line of an order. Product name/type/price are snapshotted at
-/// purchase time so historical orders don't change when the catalogue does.
-/// Maps to the `order_items` table (V008).
-/// </summary>
+
 public class OrderItem
 {
     public Guid Id { get; set; }
     public Guid OrderId { get; set; }
 
-    /// <summary>MongoDB ObjectId of the catalogue product.</summary>
     public string ProductId { get; set; } = null!;
 
     // Snapshots at purchase time.

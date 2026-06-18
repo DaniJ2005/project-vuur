@@ -4,10 +4,7 @@ using Vuur.Api.Config;
 
 namespace Vuur.Api.Data;
 
-/// <summary>
-/// Provides raw NpgsqlConnections for use with Dapper.
-/// Inject this into repositories and write your own SQL.
-/// </summary>
+
 public class PostgresContext
 {
     private readonly string host;

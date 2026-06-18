@@ -4,14 +4,12 @@ namespace Vuur.Api.Features.Products;
 public class ProductService(
     IProductReadRepository readRepo,
     IProductRepository writeRepo,
-    ProductCache cache)
+    IProductCache cache)
 {
 
-    /// <summary>Cursor-paginated, filtered catalog page. Not cached (queries vary per filter).</summary>
     public async Task<ProductPage> GetPageAsync(ProductQuery query)
         => await readRepo.GetPageAsync(query);
 
-    /// <summary>Distinct genres + platforms for the filter sidebar (cached).</summary>
     public async Task<ProductFacets> GetFacetsAsync()
     {
         var cached = await cache.GetFacetsAsync();
@@ -22,7 +20,6 @@ public class ProductService(
         return facets;
     }
 
-    /// <summary>Batch fetch by id (used by the wishlist page).</summary>
     public async Task<IReadOnlyList<Product>> GetByIdsAsync(IReadOnlyList<string> ids)
         => ids.Count == 0 ? Array.Empty<Product>() : await readRepo.GetByIdsAsync(ids);
 

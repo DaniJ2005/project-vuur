@@ -3,12 +3,8 @@ using Vuur.Api.Data;
 
 namespace Vuur.Api.Features.Products;
 
-/// <summary>
-/// Redis-backed cache for single products and the filter facets. The paginated catalog
-/// list itself is not cached (it varies per filter/sort/cursor). All entries expire after
-/// <see cref="Ttl"/>; write operations must call the relevant Invalidate method.
-/// </summary>
-public class ProductCache(RedisContext redis)
+
+public class ProductCache(RedisContext redis) : IProductCache
 {
     private static readonly TimeSpan Ttl = TimeSpan.FromMinutes(10);
 
@@ -26,7 +22,6 @@ public class ProductCache(RedisContext redis)
     public async Task SetByIdAsync(Product product)
         => await redis.Db.StringSetAsync(SingleKey(product.Id), JsonSerializer.Serialize(product), Ttl);
 
-    /// <summary>Invalidates the single-product entry and the facets (genre/platform may have changed).</summary>
     public async Task InvalidateAsync(string id)
     {
         await redis.Db.KeyDeleteAsync(SingleKey(id));

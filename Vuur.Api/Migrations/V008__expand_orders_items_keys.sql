@@ -1,13 +1,14 @@
--- Orders become self-contained historical records. Line items move to their own
--- table (with price-at-purchase); the delivery address is snapshotted and nullable
--- because key-only orders ship nothing; game keys get a dedicated inventory table.
+-- Orders bewaren hun eigen gegevens.
+-- Producten staan nu in order_items met de prijs van het moment van aankoop.
+-- Verzending wordt als snapshot opgeslagen.
+-- Voor game keys is er een aparte voorraad tabel.
 
--- 1. Orders: allow anonymous buyers + snapshot contact, shipping and totals -------
+-- Orders: gastbestellingen toestaan + klant- en verzendgegevens opslaan
 ALTER TABLE orders
-    ALTER COLUMN user_id DROP NOT NULL;            -- anonymous orders allowed (FK stays, NULL ok)
+    ALTER COLUMN user_id DROP NOT NULL;  -- gebruiker mag leeg zijn
 
 ALTER TABLE orders
-    DROP COLUMN IF EXISTS products_id;             -- replaced by order_items
+    DROP COLUMN IF EXISTS products_id;  -- vervangen door order_items
 
 ALTER TABLE orders
     ADD COLUMN IF NOT EXISTS customer_email      TEXT          NOT NULL DEFAULT '',
@@ -18,9 +19,8 @@ ALTER TABLE orders
     ADD COLUMN IF NOT EXISTS shipping_method     TEXT,
     ADD COLUMN IF NOT EXISTS shipping_price      NUMERIC(10,2) NOT NULL DEFAULT 0,
     ADD COLUMN IF NOT EXISTS total_amount        NUMERIC(10,2) NOT NULL DEFAULT 0,
-    -- Delivery-address snapshot. NULL for key-only orders. Recipient name is the
-    -- customer_* fields above, so the address holds location only (matches the
-    -- addresses table after V007).
+    -- Adres op moment van bestellen.
+    -- Voor key-only bestellingen blijven deze velden leeg.
     ADD COLUMN IF NOT EXISTS ship_street         TEXT,
     ADD COLUMN IF NOT EXISTS ship_house_number   TEXT,
     ADD COLUMN IF NOT EXISTS ship_house_ext      TEXT,
@@ -28,7 +28,7 @@ ALTER TABLE orders
     ADD COLUMN IF NOT EXISTS ship_city           TEXT,
     ADD COLUMN IF NOT EXISTS ship_country_code   TEXT;
 
--- Physical orders must carry a full address; key-only orders need none.
+-- Als er verzonden moet worden, moet het adres compleet zijn.
 ALTER TABLE orders
     ADD CONSTRAINT chk_orders_shipping CHECK (
         requires_shipping = false
@@ -39,36 +39,32 @@ ALTER TABLE orders
             AND ship_country_code IS NOT NULL)
     );
 
--- 2. Order line items: one row per product, with price/name snapshot -------------
+-- Productregels binnen een bestelling
 CREATE TABLE IF NOT EXISTS order_items (
     id           UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
     order_id     UUID          NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-    product_id   TEXT          NOT NULL,                 -- MongoDB ObjectId (reference)
-    product_name TEXT          NOT NULL,                 -- snapshot at purchase
-    product_type TEXT          NOT NULL,                 -- 'key' | 'disc'
-    platform     TEXT,                                   -- snapshot for display
-    unit_price   NUMERIC(10,2) NOT NULL,                 -- price at purchase
+    product_id   TEXT          NOT NULL, -- MongoDB ObjectId
+    product_name TEXT          NOT NULL, -- naam bij aankoop
+    product_type TEXT          NOT NULL, -- key | disc
+    platform     TEXT,
+    unit_price   NUMERIC(10,2) NOT NULL, -- prijs bij aankoop
     quantity     INT           NOT NULL DEFAULT 1 CHECK (quantity > 0),
     created_at   TIMESTAMPTZ   NOT NULL DEFAULT now(),
     updated_at   TIMESTAMPTZ   NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items (order_id);
 
--- 3. Game-key inventory, assigned to an order line on purchase -------------------
+-- Voorraad van game keys
 CREATE TABLE IF NOT EXISTS game_keys (
     id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    product_id    TEXT        NOT NULL,                  -- MongoDB ObjectId of the key product
-    key_code      TEXT        NOT NULL UNIQUE,           -- activation code (treat as secret)
+    product_id    TEXT        NOT NULL, -- MongoDB ObjectId
+    key_code      TEXT        NOT NULL UNIQUE,
     status        TEXT        NOT NULL DEFAULT 'available', -- available | reserved | sold
     order_item_id UUID        REFERENCES order_items(id) ON DELETE SET NULL,
     assigned_at   TIMESTAMPTZ,
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
--- Supports the atomic "grab one available key for this product" claim:
---   UPDATE game_keys SET status='sold', order_item_id=$1, assigned_at=now()
---   WHERE id = (SELECT id FROM game_keys
---               WHERE product_id=$2 AND status='available'
---               LIMIT 1 FOR UPDATE SKIP LOCKED) RETURNING key_code;
+
+-- Handig voor het pakken van een beschikbare key.
 CREATE INDEX IF NOT EXISTS idx_game_keys_product_status ON game_keys (product_id, status);
- 

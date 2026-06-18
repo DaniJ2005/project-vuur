@@ -1,7 +1,7 @@
 name: Deploy
 
 # Bouwt en deployt frontend + api bij elke push naar main
-# als er iets in App/, Vuur.Api/, docker-compose.yml, of deze workflow zelf is veranderd.
+# als er iets in App/, Vuur.Api/, docker-compose.yml, of deze workflow zelf is veranderd
 on:
   push:
     branches: [main]
@@ -13,13 +13,13 @@ on:
   workflow_dispatch: # ook handmatig te starten via de Actions tab
 
 jobs:
-  # -------- Job 1: images bouwen en naar Docker Hub pushen --------
+  # Job 1: images bouwen en naar Docker Hub pushen
   # Matrix draait frontend en api parallel — scheelt wachttijd en houdt
-  # de stappen DRY (1x configureren, 2x uitvoeren).
+  # de stappen DRY (1x configureren, 2x uitvoeren)
   build-and-push:
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false # als frontend faalt, blijf api wel proberen (en andersom)
+      fail-fast: false # als frontend faalt, blijf api wel proberen en andersom
       matrix:
         include:
           - name: frontend
@@ -62,12 +62,12 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.name }}
 
-  # -------- Job 2: compose file syncen + server herstarten --------
+  # Job 2: docker compose file syncen + server herstarten
   # Belangrijk: runs-on is hier `self-hosted` (niet ubuntu-latest)
 
   # De schoolfirewall blokkeert SSH/SCP vanuit Azure-runners, maar onze
   # self-hosted runner zit binnen het schoolnetwerk en kan de server wel
-  # bereiken op poort 22.
+  # bereiken op poort 22
 
   deploy:
     needs: build-and-push
@@ -77,7 +77,7 @@ jobs:
         uses: actions/checkout@v4
 
       # docker-compose.yml en mongo-init.js synchroniseren met de server.
-      # De override.yml NIET — die zet DB-ports lokaal open, op productie blijven ze dicht.
+      # De override.yml NIET — die zet DB-ports lokaal open, op productie blijven ze dicht
       - name: Copy compose + mongo-init naar server
         uses: appleboy/scp-action@v0.1.7
         with:

@@ -5,13 +5,7 @@ namespace Vuur.Api.Features.Orders;
 
 public class OrderRepository(PostgresContext db)
 {
-    /// <summary>
-    /// Persists an order together with its line items in a single transaction.
-    /// The order id/timestamps and each item's id/order_id/timestamps are assigned
-    /// here. Key-type lines also get a freshly generated game key per purchased
-    /// unit, inserted into <c>game_keys</c> within the same transaction.
-    /// Returns the persisted order.
-    /// </summary>
+
     public async Task<Order> CreateAsync(Order order, IReadOnlyList<OrderItem> items)
     {
         order.Id = Guid.NewGuid();

@@ -129,10 +129,7 @@ public class OrderService(OrderRepository repo, OrderReadRepository readRepo, Pr
         return await HydrateAsync(orders);
     }
 
-    /// <summary>
-    /// Loads the line items for the given orders in one batch query (no N+1) and
-    /// maps everything onto <see cref="OrderResponse"/>.
-    /// </summary>
+
     private async Task<IEnumerable<OrderResponse>> HydrateAsync(IReadOnlyList<Order> orders)
     {
         if (orders.Count == 0) return [];
@@ -150,10 +147,7 @@ public class OrderService(OrderRepository repo, OrderReadRepository readRepo, Pr
         return orders.Select(o => ToResponse(o, itemsByOrder[o.Id], keysByItem)).ToList();
     }
 
-    /// <summary>
-    /// Flat shipping rate per method. Placeholder figures — replace with real
-    /// carrier pricing when it's decided. Only applied to orders that ship a disc.
-    /// </summary>
+
     private static decimal ResolveShippingPrice(string? method) => method?.ToLowerInvariant() switch
     {
         "express" => 9.99m,
