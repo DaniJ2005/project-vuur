@@ -4,9 +4,7 @@ using System.Security.Claims;
 
 namespace Vuur.Api.Features.Users;
 
-/// <summary>
 /// Manage delivery addresses for the authenticated user.
-/// </summary>
 [ApiController]
 [Route("/api/addresses")]
 [Authorize]
@@ -19,7 +17,6 @@ public class AddressController(AddressService service) : ControllerBase
 
     private bool IsAdmin => User.IsInRole("admin");
 
-    /// <summary>Get all addresses for the current user.</summary>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<AddressResponse>), 200)]
     public async Task<IActionResult> GetAll()
@@ -28,7 +25,6 @@ public class AddressController(AddressService service) : ControllerBase
         return Ok(addresses);
     }
 
-    /// <summary>Add a new address.</summary>
     [HttpPost]
     [ProducesResponseType(typeof(AddressResponse), 201)]
     [ProducesResponseType(typeof(object), 400)]
@@ -38,7 +34,6 @@ public class AddressController(AddressService service) : ControllerBase
         return CreatedAtAction(nameof(GetAll), new { }, response);
     }
 
-    /// <summary>Update an existing address.</summary>
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(AddressResponse), 200)]
     [ProducesResponseType(typeof(object), 404)]
@@ -50,7 +45,6 @@ public class AddressController(AddressService service) : ControllerBase
         return Ok(response);
     }
 
-    /// <summary>Mark an address as the user's default.</summary>
     [HttpPut("{id:guid}/default")]
     [ProducesResponseType(typeof(AddressResponse), 200)]
     [ProducesResponseType(typeof(object), 404)]
@@ -62,7 +56,6 @@ public class AddressController(AddressService service) : ControllerBase
         return Ok(response);
     }
 
-    /// <summary>Delete an address.</summary>
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(204)]
     [ProducesResponseType(typeof(object), 404)]

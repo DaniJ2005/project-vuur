@@ -4,33 +4,22 @@ using System.Security.Claims;
 
 namespace Vuur.Api.Features.Orders;
 
-/// <summary>
-/// Place and retrieve orders.
-/// </summary>
+
 [ApiController]
 [Route("/api/orders")]
 [Produces("application/json")]
 public class OrderController(OrderService service) : ControllerBase
 {
-    /// <summary>
-    /// The current user's id, or null for an anonymous (guest) request.
-    /// Authenticated endpoints use <c>CurrentUserId!.Value</c> since the
-    /// [Authorize] filter guarantees a token is present.
-    /// </summary>
+
     private Guid? CurrentUserId =>
         Guid.TryParse(User.FindFirstValue("sub"), out var id) ? id : null;
 
-    /// <summary>
-    /// The email on the current user's JWT, or null for an anonymous (guest) request.
-    /// Authoritative for logged-in users — never trust an email from the request body
-    /// when a token is present.
-    /// </summary>
+
     private string? CurrentUserEmail => User.FindFirstValue("email");
 
 
     private bool IsAdmin => User.IsInRole("admin");
 
-    /// <summary>Get all orders for the current user. Admins see all orders.</summary>
     [HttpGet]
     [Authorize]
     [ProducesResponseType(typeof(IEnumerable<OrderResponse>), 200)]
@@ -43,7 +32,6 @@ public class OrderController(OrderService service) : ControllerBase
         return Ok(orders);
     }
 
-    /// <summary>Get a single order by ID.</summary>
     [HttpGet("{id:guid}")]
     [Authorize]
     [ProducesResponseType(typeof(OrderResponse), 200)]
@@ -56,7 +44,6 @@ public class OrderController(OrderService service) : ControllerBase
         return Ok(response);
     }
 
-    /// <summary>Place a new order.</summary>
     [HttpPost]
     [ProducesResponseType(typeof(OrderResponse), 201)]
     [ProducesResponseType(typeof(object), 400)]

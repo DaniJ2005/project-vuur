@@ -26,10 +26,7 @@ public class OrderReadRepository(PostgresContext db)
         return await conn.QueryAsync<Order>(sql);
     }
 
-    /// <summary>
-    /// Loads all line items belonging to the given orders in one query (so the
-    /// service can hydrate many orders without an N+1).
-    /// </summary>
+
     public async Task<IReadOnlyList<OrderItem>> GetItemsByOrderIdsAsync(IReadOnlyList<Guid> orderIds)
     {
         if (orderIds.Count == 0) return [];
@@ -40,10 +37,7 @@ public class OrderReadRepository(PostgresContext db)
         return rows.ToList();
     }
 
-    /// <summary>
-    /// Loads the game keys assigned to the given order items in one query (so the
-    /// service can hydrate keys without an N+1).
-    /// </summary>
+
     public async Task<IReadOnlyList<GameKey>> GetKeysByOrderItemIdsAsync(IReadOnlyList<Guid> orderItemIds)
     {
         if (orderItemIds.Count == 0) return [];

@@ -4,9 +4,7 @@ using System.Security.Claims;
 
 namespace Vuur.Api.Features.Orders;
 
-/// <summary>
-/// Create and retrieve payments linked to orders.
-/// </summary>
+
 [ApiController]
 [Route("/api/payments")]
 [Authorize]
@@ -18,7 +16,6 @@ public class PaymentController(PaymentService service) : ControllerBase
 
     private bool IsAdmin => User.IsInRole("admin");
 
-    /// <summary>Get all payments. Admins only.</summary>
     [HttpGet]
     [Authorize(Roles = "admin")]
     [ProducesResponseType(typeof(IEnumerable<PaymentResponse>), 200)]
@@ -29,7 +26,6 @@ public class PaymentController(PaymentService service) : ControllerBase
         return Ok(payments);
     }
 
-    /// <summary>Get the payment for a specific order.</summary>
     [HttpGet("order/{orderId:guid}")]
     [ProducesResponseType(typeof(PaymentResponse), 200)]
     [ProducesResponseType(typeof(object), 404)]
@@ -41,7 +37,6 @@ public class PaymentController(PaymentService service) : ControllerBase
         return Ok(response);
     }
 
-    /// <summary>Create a payment for an order.</summary>
     [HttpPost]
     [ProducesResponseType(typeof(PaymentResponse), 201)]
     [ProducesResponseType(typeof(object), 400)]

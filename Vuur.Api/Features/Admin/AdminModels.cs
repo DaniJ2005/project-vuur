@@ -36,7 +36,6 @@ public record AdminActivityResponse(
     DateTime Timestamp
 );
 
-/// <summary>Internal table definition — not exposed to clients.</summary>
 internal record AdminPostgresTable(
     string Name,
     string SelectSql,

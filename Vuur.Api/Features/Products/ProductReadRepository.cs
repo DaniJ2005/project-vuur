@@ -26,7 +26,7 @@ public class ProductReadRepository(MongoContext mongo) : IProductReadRepository
             .Find(Builders<Product>.Filter.In(p => p.Id, ids))
             .ToListAsync();
 
-    // ── Cursor (keyset) pagination ───────────────────────────────────────────────
+    // Cursor (keyset) pagination 
 
     public async Task<ProductPage> GetPageAsync(ProductQuery q)
     {
@@ -76,7 +76,6 @@ public class ProductReadRepository(MongoContext mongo) : IProductReadRepository
         if (!string.IsNullOrWhiteSpace(q.Search))
             parts.Add(f.Regex(p => p.ProductName, new BsonRegularExpression(Regex.Escape(q.Search), "i")));
 
-        // A product matches a platform/format filter when it has a variant for it.
         if (!string.IsNullOrWhiteSpace(q.Platform) && !string.IsNullOrWhiteSpace(q.Format))
             parts.Add(f.ElemMatch(p => p.Variants, v => v.Platform == q.Platform && v.Format == q.Format));
         else if (!string.IsNullOrWhiteSpace(q.Platform))
@@ -101,11 +100,11 @@ public class ProductReadRepository(MongoContext mongo) : IProductReadRepository
         var s = Builders<Product>.Sort;
         return sort switch
         {
-            "price_asc"  => s.Ascending(p => p.MinPrice).Ascending(p => p.Id),
+            "price_asc" => s.Ascending(p => p.MinPrice).Ascending(p => p.Id),
             "price_desc" => s.Descending(p => p.MinPrice).Descending(p => p.Id),
-            "rating"     => s.Descending(p => p.Rating).Descending(p => p.Id),
-            "name"       => s.Ascending(p => p.ProductName).Ascending(p => p.Id),
-            _            => s.Descending(p => p.CreatedAt).Descending(p => p.Id), // newest
+            "rating" => s.Descending(p => p.Rating).Descending(p => p.Id),
+            "name" => s.Ascending(p => p.ProductName).Ascending(p => p.Id),
+            _ => s.Descending(p => p.CreatedAt).Descending(p => p.Id), // newest
         };
     }
 
@@ -115,32 +114,32 @@ public class ProductReadRepository(MongoContext mongo) : IProductReadRepository
         switch (sort)
         {
             case "price_asc":
-            {
-                var v = decimal.Parse(c.V, CultureInfo.InvariantCulture);
-                return f.Or(f.Gt(p => p.MinPrice, v),
-                            f.And(f.Eq(p => p.MinPrice, v), f.Gt(p => p.Id, c.Id)));
-            }
+                {
+                    var v = decimal.Parse(c.V, CultureInfo.InvariantCulture);
+                    return f.Or(f.Gt(p => p.MinPrice, v),
+                                f.And(f.Eq(p => p.MinPrice, v), f.Gt(p => p.Id, c.Id)));
+                }
             case "price_desc":
-            {
-                var v = decimal.Parse(c.V, CultureInfo.InvariantCulture);
-                return f.Or(f.Lt(p => p.MinPrice, v),
-                            f.And(f.Eq(p => p.MinPrice, v), f.Lt(p => p.Id, c.Id)));
-            }
+                {
+                    var v = decimal.Parse(c.V, CultureInfo.InvariantCulture);
+                    return f.Or(f.Lt(p => p.MinPrice, v),
+                                f.And(f.Eq(p => p.MinPrice, v), f.Lt(p => p.Id, c.Id)));
+                }
             case "rating":
-            {
-                var v = decimal.Parse(c.V, CultureInfo.InvariantCulture);
-                return f.Or(f.Lt(p => p.Rating, v),
-                            f.And(f.Eq(p => p.Rating, v), f.Lt(p => p.Id, c.Id)));
-            }
+                {
+                    var v = decimal.Parse(c.V, CultureInfo.InvariantCulture);
+                    return f.Or(f.Lt(p => p.Rating, v),
+                                f.And(f.Eq(p => p.Rating, v), f.Lt(p => p.Id, c.Id)));
+                }
             case "name":
                 return f.Or(f.Gt(p => p.ProductName, c.V),
                             f.And(f.Eq(p => p.ProductName, c.V), f.Gt(p => p.Id, c.Id)));
             default: // newest
-            {
-                var v = DateTime.Parse(c.V, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
-                return f.Or(f.Lt(p => p.CreatedAt, v),
-                            f.And(f.Eq(p => p.CreatedAt, v), f.Lt(p => p.Id, c.Id)));
-            }
+                {
+                    var v = DateTime.Parse(c.V, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+                    return f.Or(f.Lt(p => p.CreatedAt, v),
+                                f.And(f.Eq(p => p.CreatedAt, v), f.Lt(p => p.Id, c.Id)));
+                }
         }
     }
 
@@ -148,8 +147,8 @@ public class ProductReadRepository(MongoContext mongo) : IProductReadRepository
     private static string SortValue(string sort, Product p) => sort switch
     {
         "price_asc" or "price_desc" => p.MinPrice.ToString(CultureInfo.InvariantCulture),
-        "rating"                    => p.Rating.ToString(CultureInfo.InvariantCulture),
-        "name"                      => p.ProductName,
-        _                           => p.CreatedAt.ToString("O", CultureInfo.InvariantCulture),
+        "rating" => p.Rating.ToString(CultureInfo.InvariantCulture),
+        "name" => p.ProductName,
+        _ => p.CreatedAt.ToString("O", CultureInfo.InvariantCulture),
     };
 }

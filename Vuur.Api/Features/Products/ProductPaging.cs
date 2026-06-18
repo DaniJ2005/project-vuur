@@ -3,7 +3,6 @@ using System.Text.Json;
 
 namespace Vuur.Api.Features.Products;
 
-/// <summary>Catalog query parameters for the cursor-paginated product list.</summary>
 public record ProductQuery(
     int Limit,
     string? Cursor,
@@ -15,23 +14,17 @@ public record ProductQuery(
     decimal? MaxPrice,
     string? Flag);
 
-/// <summary>One page of catalog results. <see cref="Total"/> is only filled on the first page.</summary>
 public record ProductPage(
     IReadOnlyList<Product> Items,
     string? NextCursor,
     bool HasMore,
     long? Total);
 
-/// <summary>Distinct values that power the catalog filter sidebar.</summary>
 public record ProductFacets(IReadOnlyList<string> Genres, IReadOnlyList<string> Platforms);
 
-/// <summary>The decoded keyset cursor: the sort field value + the _id tiebreaker.</summary>
 public record CursorData(string V, string Id);
 
-/// <summary>
-/// Encodes/decodes the opaque pagination cursor as base64url JSON. Decoding never throws —
-/// a malformed cursor is treated as "start from the beginning".
-/// </summary>
+
 public static class CursorCodec
 {
     public static string Encode(string sortValue, string id)

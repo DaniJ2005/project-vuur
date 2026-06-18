@@ -1,206 +1,178 @@
-﻿using Moq;
-using Vuur.Api.Features;
+using Moq;
 using Vuur.Api.Features.Products;
 using Xunit;
-using AutoMapper;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Vuur.Tests;
 
+// Unit tests voor ProductService. De service hangt af van twee repository-interfaces
+// en de cache-interface (IProductCache); die worden hier met Moq gemockt, zodat de
+// bedrijfslogica wordt geverifieerd zonder een echte MongoDB- of Redis-verbinding.
 public class ProductServiceTests
 {
-    private readonly Mock<IProductRepository<Product>> _repoMock;
-    private readonly Mock<IProductReadRepository<Product>> _readRepoMock;
-    private readonly IMapper _mapper;
+    private readonly Mock<IProductReadRepository> _readRepoMock = new();
+    private readonly Mock<IProductRepository> _writeRepoMock = new();
+    private readonly Mock<IProductCache> _cacheMock = new();
     private readonly ProductService _service;
 
     public ProductServiceTests()
     {
-        _repoMock = new Mock<IProductRepository<Product>>();
-        _readRepoMock = new Mock<IProductReadRepository<Product>>();
-        var config = new MapperConfiguration(
-            cfg =>
-            {
-                cfg.CreateMap<CreateProductRequest, Product>();
-                cfg.CreateMap<UpdateProductRequest, Product>()
-                    .ForAllMembers(opts =>
-                        opts.Condition((src, dest, srcMember) => srcMember != null));
-            },
-            NullLoggerFactory.Instance
-        );
-
-        _mapper = config.CreateMapper();
-        _service = new ProductService(_repoMock.Object, _readRepoMock.Object, _mapper);
+        _service = new ProductService(_readRepoMock.Object, _writeRepoMock.Object, _cacheMock.Object);
     }
 
-    [Fact] // Creates product and returns mapped result
-    public async Task CreateProduct_ShouldReturnCreatedProduct()
+    // Hulpfunctie om kort een variant-DTO te maken (platform/formaat/prijs).
+    private static ProductVariantDto Variant(
+        string platform = "Steam", string format = "key",
+        decimal price = 50m, decimal originalPrice = 60m, decimal discountPercent = 10m)
+        => new(platform, format, price, originalPrice, discountPercent);
+
+    [Fact] // Maakt een product aan, mapt de varianten en berekent MinPrice
+    public async Task CreateProduct_ShouldMapRequestAndComputeMinPrice()
     {
         var request = new CreateProductRequest(
-            "Test Product",
-            "Desc",
-            "PC",
-            "Action",
-            "Game",
-            50,
-            100,
-            50,
-            4.5m,
-            true,
-            false
-        );
+            ProductName: "Test Product",
+            ProductDescription: "Desc",
+            Genre: "Action",
+            Variants: new[] { Variant(price: 50m), Variant(platform: "Xbox", format: "disc", price: 40m) },
+            Rating: 4.5m,
+            Flags: new[] { "new" });
 
-        _repoMock
+        _writeRepoMock
             .Setup(r => r.CreateAsync(It.IsAny<Product>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((Product p) => p);
 
         var result = await _service.CreateAsync(request);
 
         Assert.Equal("Test Product", result.ProductName);
-        Console.WriteLine("Product name is \"Test Product\"");
-        Assert.Equal(50, result.Price);
-        Console.WriteLine("Product price is 50");
-        Assert.Equal(true, result.IsNew);
+        Assert.Equal("Action", result.Genre);
+        Assert.Equal(2, result.Variants.Count);
+        Assert.Equal(40m, result.MinPrice);            // laagste variant-prijs
+        Assert.Contains("new", result.Flags);
 
-        // Finishing comment
-        // Conventies voor finishing comments zijn dat ze altijd beginnen met "Product supports..."
-        // en eindigen met "successfully!" (het uitroepteken is belangrijk)
-        Console.WriteLine("Product supports creation and mapping successfully!");
+        _writeRepoMock.Verify(r => r.CreateAsync(It.IsAny<Product>()), Times.Once);
+        _cacheMock.Verify(c => c.InvalidateFacetsAsync(), Times.Once);
     }
 
-    [Fact] // Updates all fields including numbers and booleans
-    public async Task UpdateProduct_ShouldUpdateAllDataTypes()
+    [Fact] // Werkt alle opgegeven velden bij en herberekent MinPrice uit de nieuwe varianten
+    public async Task UpdateProduct_ShouldUpdateProvidedFields()
     {
         var existing = new Product
         {
             Id = "1",
             ProductName = "Old",
             ProductDescription = "Old",
-            Platform = "PC",
             Genre = "Old",
-            Type = "Old",
-            Price = 10,
-            OriginalPrice = 20,
-            DiscountPercent = 0,
-            Rating = 1,
-            IsNew = false,
-            IsFeatured = false,
+            Variants = new List<ProductVariant> { new() { Platform = "PC", Format = "key", Price = 10m } },
+            MinPrice = 10m,
+            Rating = 1m,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
 
-        _readRepoMock
-            .Setup(r => r.GetByIdAsync("1"))
-            .ReturnsAsync(existing);
-
-        _repoMock
-            .Setup(r => r.UpdateAsync(It.IsAny<Product>()))
-            .ReturnsAsync(true);
+        _readRepoMock.Setup(r => r.GetByIdAsync("1")).ReturnsAsync(existing);
+        _writeRepoMock.Setup(r => r.UpdateAsync(It.IsAny<Product>())).ReturnsAsync(true);
 
         var request = new UpdateProductRequest(
             ProductName: "New Name",
             ProductDescription: "New Desc",
-            Platform: "Console",
             Genre: "Shooter",
-            Type: "Game",
-            Price: 99.99m,
-            OriginalPrice: 120m,
-            DiscountPercent: 15m,
+            Variants: new[] { Variant("PlayStation", "disc", 99.99m, 120m, 15m) },
             Rating: 4.9m,
-            IsNew: true,
-            IsFeatured: true
-        );
+            Flags: new[] { "featured" });
 
         var result = await _service.UpdateAsync("1", request);
 
         Assert.True(result);
         Assert.Equal("New Name", existing.ProductName);
-        Console.WriteLine("Product name updated");
-        Assert.Equal(99.99m, existing.Price);
-        Console.WriteLine("Product price updated");
-        Assert.True(existing.IsFeatured);
+        Assert.Equal("Shooter", existing.Genre);
+        Assert.Single(existing.Variants);
+        Assert.Equal(99.99m, existing.MinPrice);       // herberekend uit de nieuwe variant
+        Assert.Equal(4.9m, existing.Rating);
 
-        // Finishing comment
-        Console.WriteLine("Product supports updates successfully!");
+        _cacheMock.Verify(c => c.InvalidateAsync("1"), Times.Once);
     }
 
-    [Fact] // Updates only provided fields, keeps existing values
-    public async Task UpdateProduct_ShouldSupportPartialUpdates()
+    [Fact] // Velden die null zijn (niet meegestuurd) blijven ongewijzigd
+    public async Task UpdateProduct_ShouldKeepExistingValuesForNullFields()
     {
         var existing = new Product
         {
             Id = "1",
             ProductName = "Old",
-            Price = 9,
-            IsNew = false,
-            IsFeatured = false,
+            Genre = "Old",
+            Variants = new List<ProductVariant> { new() { Platform = "PC", Format = "key", Price = 9m } },
+            MinPrice = 9m,
+            Rating = 3m,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
 
-        _readRepoMock.Setup(r => r.GetByIdAsync("1"))
-            .ReturnsAsync(existing);
-
-        _repoMock.Setup(r => r.UpdateAsync(It.IsAny<Product>()))
-            .ReturnsAsync(true);
+        _readRepoMock.Setup(r => r.GetByIdAsync("1")).ReturnsAsync(existing);
+        _writeRepoMock.Setup(r => r.UpdateAsync(It.IsAny<Product>())).ReturnsAsync(true);
 
         var request = new UpdateProductRequest(
             ProductName: "Updated Only",
             ProductDescription: null,
-            Platform: null,
             Genre: null,
-            Type: null,
-            Price: 10,
-            OriginalPrice: null,
-            DiscountPercent: null,
+            Variants: null,
             Rating: null,
-            IsNew: null,
-            IsFeatured: null
-        );
+            Flags: null);
 
         var result = await _service.UpdateAsync("1", request);
 
         Assert.True(result);
-        Console.WriteLine("Result exists");
         Assert.Equal("Updated Only", existing.ProductName);
-        Console.WriteLine("Results name has been updated");
-        Assert.Equal(10, existing.Price);
-        Console.WriteLine("Results price has been lowered to 10");
-        Assert.False(existing.IsFeatured);
-
-        // Finishing comment
-        Console.WriteLine("Product supports partial updates!");
+        Assert.Equal("Old", existing.Genre);           // niet meegestuurd -> behouden
+        Assert.Equal(9m, existing.MinPrice);           // varianten niet meegestuurd -> behouden
+        Assert.Equal(3m, existing.Rating);
     }
 
-    [Fact] // Deletes product and returns success status
-    public async Task DeleteProduct_ShouldReturnTrue()
+    [Fact] // Een niet-bestaand product levert false op en raakt de write-repo niet
+    public async Task UpdateProduct_ShouldReturnFalseWhenNotFound()
     {
-        _repoMock.Setup(r => r.DeleteAsync("1"))
-            .ReturnsAsync(true);
+        _readRepoMock.Setup(r => r.GetByIdAsync("404")).ReturnsAsync((Product?)null);
+
+        var result = await _service.UpdateAsync("404",
+            new UpdateProductRequest(null, null, null, null, null, null));
+
+        Assert.False(result);
+        _writeRepoMock.Verify(r => r.UpdateAsync(It.IsAny<Product>()), Times.Never);
+    }
+
+    [Fact] // Verwijdert een product en invalideert de cache
+    public async Task DeleteProduct_ShouldReturnTrueAndInvalidateCache()
+    {
+        _writeRepoMock.Setup(r => r.DeleteAsync("1")).ReturnsAsync(true);
 
         var result = await _service.DeleteAsync("1");
 
         Assert.True(result);
-
-        // Finishing comment
-        Console.WriteLine("Product supports deletion!");
+        _cacheMock.Verify(c => c.InvalidateAsync("1"), Times.Once);
     }
 
-    [Fact] // Retrieves product by id successfully
-    public async Task GetById_ShouldReturnProduct()
+    [Fact] // Bij een cache-hit komt het product uit Redis, niet uit de database
+    public async Task GetById_ShouldReturnFromCacheWhenPresent()
     {
-        var product = new Product { Id = "1", ProductName = "Test" };
-
-        _readRepoMock.Setup(r => r.GetByIdAsync("1"))
-            .ReturnsAsync(product);
+        var cached = new Product { Id = "1", ProductName = "Cached" };
+        _cacheMock.Setup(c => c.GetByIdAsync("1")).ReturnsAsync(cached);
 
         var result = await _service.GetByIdAsync("1");
 
         Assert.NotNull(result);
-        Console.WriteLine("Product retrieved successfully");
-        Assert.Equal("Test", result!.ProductName);
+        Assert.Equal("Cached", result!.ProductName);
+        _readRepoMock.Verify(r => r.GetByIdAsync(It.IsAny<string>()), Times.Never);
+    }
 
-        // Finishing comment
-        Console.WriteLine("Product supports retrieval by ID!");
+    [Fact] // Bij een cache-miss komt het product uit de repository en wordt het gecachet
+    public async Task GetById_ShouldFallBackToRepositoryAndCacheResult()
+    {
+        _cacheMock.Setup(c => c.GetByIdAsync("1")).ReturnsAsync((Product?)null);
+        var fromDb = new Product { Id = "1", ProductName = "FromDb" };
+        _readRepoMock.Setup(r => r.GetByIdAsync("1")).ReturnsAsync(fromDb);
+
+        var result = await _service.GetByIdAsync("1");
+
+        Assert.NotNull(result);
+        Assert.Equal("FromDb", result!.ProductName);
+        _cacheMock.Verify(c => c.SetByIdAsync(fromDb), Times.Once);
     }
 }

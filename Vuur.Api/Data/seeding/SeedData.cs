@@ -2,16 +2,7 @@ using Vuur.Api.Features.Products;
 
 namespace Vuur.Api.Data.Seeding;
 
-/// <summary>
-/// Builds the product catalogue directly in the variant-based shape (one document
-/// per real game, with a <see cref="Product.Variants"/> entry per platform/format).
-///
-/// All titles are real, existing games. Per-product pricing, ratings, discounts and
-/// flags are derived deterministically from a fixed-seed RNG so a reseed is always
-/// reproducible — only the values are synthesised, never the game names. The volume
-/// (~2k products, several thousand variants) exists so the catalog pagination/index
-/// work can be performance-tested against a realistic dataset.
-/// </summary>
+
 internal static class SeedData
 {
     public const string AdminEmail = "admin@vuur.nl";
@@ -25,45 +16,45 @@ internal static class SeedData
 
     public static readonly IReadOnlyList<Product> Products = Build();
 
-    // ── price tiers ──────────────────────────────────────────────────────────────
+    // price tiers 
     private enum Band { Free, Budget, Mid, Recent, New }
 
     private static decimal Msrp(Band b) => b switch
     {
-        Band.Free   => 0m,
+        Band.Free => 0m,
         Band.Budget => 14.99m,
-        Band.Mid    => 29.99m,
+        Band.Mid => 29.99m,
         Band.Recent => 49.99m,
-        Band.New    => 69.99m,
-        _           => 29.99m,
+        Band.New => 69.99m,
+        _ => 29.99m,
     };
 
     private static decimal DiscountFor(Band b)
     {
         var (lo, hi) = b switch
         {
-            Band.New    => (0, 15),
+            Band.New => (0, 15),
             Band.Recent => (0, 35),
-            Band.Mid    => (10, 55),
+            Band.Mid => (10, 55),
             Band.Budget => (0, 50),
-            _           => (0, 0),
+            _ => (0, 0),
         };
         return hi == 0 ? 0m : Rng.Next(lo, hi + 1);
     }
 
-    // ── platform profiles ────────────────────────────────────────────────────────
+    // platform profiles 
     private enum Profile { Pc, PcPlayStation, Multi, MultiNintendo, PlayStation, Xbox, Nintendo }
 
     private static (string platform, string[] formats)[] Platforms(Profile p) => p switch
     {
-        Profile.Pc            => new[] { ("Steam", new[] { "key" }) },
+        Profile.Pc => new[] { ("Steam", new[] { "key" }) },
         Profile.PcPlayStation => new[] { ("Steam", new[] { "key" }), ("PlayStation", new[] { "key", "disc" }) },
-        Profile.Multi         => new[] { ("Steam", new[] { "key" }), ("PlayStation", new[] { "key", "disc" }), ("Xbox", new[] { "key", "disc" }) },
+        Profile.Multi => new[] { ("Steam", new[] { "key" }), ("PlayStation", new[] { "key", "disc" }), ("Xbox", new[] { "key", "disc" }) },
         Profile.MultiNintendo => new[] { ("Steam", new[] { "key" }), ("PlayStation", new[] { "key", "disc" }), ("Xbox", new[] { "key", "disc" }), ("Nintendo", new[] { "key", "disc" }) },
-        Profile.PlayStation   => new[] { ("PlayStation", new[] { "key", "disc" }) },
-        Profile.Xbox          => new[] { ("Xbox", new[] { "key", "disc" }) },
-        Profile.Nintendo      => new[] { ("Nintendo", new[] { "key", "disc" }) },
-        _                     => new[] { ("Steam", new[] { "key" }) },
+        Profile.PlayStation => new[] { ("PlayStation", new[] { "key", "disc" }) },
+        Profile.Xbox => new[] { ("Xbox", new[] { "key", "disc" }) },
+        Profile.Nintendo => new[] { ("Nintendo", new[] { "key", "disc" }) },
+        _ => new[] { ("Steam", new[] { "key" }) },
     };
 
     private static decimal Round2(decimal v) => Math.Round(v, 2, MidpointRounding.AwayFromZero);
@@ -76,22 +67,22 @@ internal static class SeedData
 
         var variants = new List<ProductVariant>();
         foreach (var (platform, formats) in Platforms(profile))
-        foreach (var format in formats)
-        {
-            // Physical editions carry a small premium over the digital key.
-            var listPrice = msrp == 0 ? 0m : msrp + (format == "disc" ? 5m : 0m);
-            var discount  = msrp == 0 ? 0m : DiscountFor(band);
-            var price     = msrp == 0 ? 0m : Round2(listPrice * (1 - discount / 100m));
-
-            variants.Add(new ProductVariant
+            foreach (var format in formats)
             {
-                Platform        = platform,
-                Format          = format,
-                Price           = price,
-                OriginalPrice   = listPrice,
-                DiscountPercent = discount,
-            });
-        }
+                // Physical editions carry a small premium over the digital key.
+                var listPrice = msrp == 0 ? 0m : msrp + (format == "disc" ? 5m : 0m);
+                var discount = msrp == 0 ? 0m : DiscountFor(band);
+                var price = msrp == 0 ? 0m : Round2(listPrice * (1 - discount / 100m));
+
+                variants.Add(new ProductVariant
+                {
+                    Platform = platform,
+                    Format = format,
+                    Price = price,
+                    OriginalPrice = listPrice,
+                    DiscountPercent = discount,
+                });
+            }
 
         var flags = new List<string>();
         // New-tier releases are mostly flagged new; a small slice of everything else
@@ -102,15 +93,15 @@ internal static class SeedData
 
         return new Product
         {
-            ProductName        = name,
+            ProductName = name,
             ProductDescription = Describe(name, genre),
-            Genre              = genre,
-            Variants           = variants,
-            MinPrice           = variants.Min(v => v.Price),
-            Rating             = Round1(3.4m + (decimal)Rng.NextDouble() * 1.6m), // 3.4 – 5.0
-            Flags              = flags,
-            CreatedAt          = DateTime.UtcNow,
-            UpdatedAt          = DateTime.UtcNow,
+            Genre = genre,
+            Variants = variants,
+            MinPrice = variants.Min(v => v.Price),
+            Rating = Round1(3.4m + (decimal)Rng.NextDouble() * 1.6m), // 3.4 – 5.0
+            Flags = flags,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
         };
     }
 
@@ -188,13 +179,12 @@ internal static class SeedData
         },
     };
 
-    // ── catalogue DSL ────────────────────────────────────────────────────────────
+    //  catalogue DSL 
     private static void Add(string genre, Profile profile, Band band, params string[] names)
     {
         foreach (var name in names) Acc.Add(Make(name, genre, profile, band));
     }
 
-    /// <summary>Adds "{prefix}{n}{suffix}" for n in [from, to], n formatted with <paramref name="fmt"/>.</summary>
     private static void Series(string genre, Profile profile, Band band, string prefix, string fmt, int from, int to, string suffix = "")
     {
         for (var n = from; n <= to; n++) Acc.Add(Make(prefix + n.ToString(fmt) + suffix, genre, profile, band));

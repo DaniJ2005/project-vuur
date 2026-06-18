@@ -53,7 +53,7 @@ builder.Services.AddScoped<AddressRepository>();
 builder.Services.AddScoped<WishlistRepository>();
 builder.Services.AddScoped<OrderRepository>();
 builder.Services.AddScoped<PaymentRepository>();
-builder.Services.AddSingleton<ProductCache>();
+builder.Services.AddSingleton<IProductCache, ProductCache>();
 builder.Services.AddScoped<RefreshTokensRepository>();
 
 // Read Repositories
